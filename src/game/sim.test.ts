@@ -165,8 +165,8 @@ interface SimResult {
   state: string;
 }
 
-function runSim(seed: number, maxSec: number): SimResult {
-  const w = new GameWorld(seed);
+function runSim(seed: number, maxSec: number, character: 'warrior' | 'shaman' | 'chief' = 'warrior'): SimResult {
+  const w = new GameWorld(seed, 'grass', character);
   let guard = Math.ceil(maxSec / DT) * 2;
   while (w.state === 'playing' && w.time < maxSec && guard-- > 0) {
     w.update(DT, kiteInput(w));
@@ -202,6 +202,18 @@ describe('自動プレイ・バランスシミュレーション', () => {
     expect(r.kills).toBeGreaterThan(100);
     expect(r.level).toBeGreaterThanOrEqual(7);
   }, 30_000);
+
+  it('シャーマン・族長も極端に弱くない（壊れキャラ検知）', () => {
+    for (const char of ['shaman', 'chief'] as const) {
+      const results = [1, 2, 3].map((s) => runSim(s, GAME_DURATION + 30, char));
+      const detail = `${char}: ` + results.map((r) => `${r.survivedSec.toFixed(0)}s`).join('/');
+      console.log(`[sim] ${detail}`);
+      // 戦士基準(min 105s)より緩いが、初期武器が機能していれば届くライン
+      for (const r of results) {
+        expect(r.survivedSec, detail).toBeGreaterThanOrEqual(80);
+      }
+    }
+  }, 180_000);
 
   it('フルビルドの理論DPSでボスを現実的な時間(60秒以内)に倒せる', () => {
     // 近接フルビルド時の対単体DPSの概算
