@@ -8,8 +8,8 @@
 - [x] git リポジトリ初期化・GitHub リポジトリ公開（t3q4awmhsub1-hue/ORC_SURVIVOR）
 - [x] Vite + TypeScript + Three.js 雛形
 - [x] Vitest セットアップ
-- [ ] GitHub Actions → GitHub Pages デプロイパイプライン
-      （※トークンの`workflow`スコープ待ち。現在は `npm run deploy` による gh-pages ブランチ配信で公開中）
+- [x] GitHub Actions → GitHub Pages デプロイパイプライン
+      （push で typecheck → build → deploy が自動実行。run #27350314049 で成功確認、本番200応答）
 
 ### M1: コアループ（MVP）
 - [x] ゲームループ／シーン管理（タイトル→ゲーム→リザルト→リトライ）
@@ -43,4 +43,6 @@
 - 2026-06-11: Vite+TS+Three.js 基盤構築。コード生成3Dアセット一式（キャラ9種・小物5種）とアセットビューワー（`npm run dev` で確認可）を実装。外部素材ゼロ方針で確定
 - 2026-06-11: ゲーム本体実装（M1〜M3）。ロジック層はThree.js非依存・テスト51件。敵300体で0.35ms/frame
 - 2026-06-11: 自動プレイシミュレーションでバランス調整（回避AIが最長9:54到達）。共有カード・称号・OGP実装
-- 2026-06-11: **v1.0公開** https://t3q4awmhsub1-hue.github.io/ORC_SURVIVOR/ （gh-pages配信、本番でゲーム動作・60fps確認済み）。残タスク: Actionsパイプライン（workflowスコープ待ち）
+- 2026-06-11: **v1.0公開** https://t3q4awmhsub1-hue.github.io/ORC_SURVIVOR/ （本番でゲーム動作・60fps確認済み）
+- 2026-06-11: workflowスコープ付与後、GitHub Actionsパイプライン有効化（Pagesのソースも Actions に切替）。**M0〜M4全項目完了** 🎉
+- TODO(将来): GitHub Actions の Node.js 20 非推奨警告対応（2026-09-16までにアクションのバージョン更新を確認）

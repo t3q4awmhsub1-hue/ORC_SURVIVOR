@@ -29,5 +29,5 @@
   deploy.yml のコピーは `%TEMP%\orc-deploy.yml` に保存してある
 
 ### 残タスク
-- [ ] `gh auth refresh -h github.com -s workflow` をユーザーが実行
-      → deploy.yml を復元・コミット・push → Pages のソースを GitHub Actions に切替
+- なし（workflowスコープ付与後にActionsパイプライン有効化済み。PLAN.md M0〜M4 全項目完了）
+- 将来: Actions の Node.js 20 非推奨警告（2026-09-16 期限）への対応
