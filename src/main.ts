@@ -1,4 +1,5 @@
-import { CHARACTERS, GAME_DURATION, STAGES, titleFor, type CharacterId, type StageId } from './game/config';
+import { CHARACTERS, EVOLUTIONS, GAME_DURATION, MAX_SKILL_LEVEL, STAGES, titleFor, type CharacterId, type StageId } from './game/config';
+import type { UpgradeChoice } from './game/upgrades';
 import { GameWorld } from './game/world';
 import { GameRenderer } from './render/renderer';
 import { PrologueScenes } from './render/prologueScenes';
@@ -8,7 +9,8 @@ import { UI, collectStats } from './ui/ui';
 import { VirtualJoystick } from './ui/joystick';
 
 const GAME_URL = 'https://t3q4awmhsub1-hue.github.io/ORC_SURVIVOR/';
-const HS_KEY = 'orc-survivor-highscore';
+const HS_KEY = 'orc-survivor-highscore-v2'; // ステージ別記録
+const LEGACY_HS_KEY = 'orc-survivor-highscore';
 
 type AppState = 'title' | 'prologue' | 'playing' | 'paused' | 'ending' | 'result';
 const PROLOGUE_SEEN_KEY = 'orc-survivor-prologue-seen';
@@ -54,6 +56,7 @@ for (const btn of document.querySelectorAll<HTMLButtonElement>('.stage')) {
     localStorage.setItem(STAGE_KEY, selectedStage);
     for (const b of document.querySelectorAll('.stage')) b.classList.toggle('on', b === btn);
     renderer.setStage(selectedStage);
+    ui.updateHighscoreLine(highscoreLine());
     sound.ensure();
     sound.gem();
   });
@@ -270,15 +273,34 @@ function startRun(): void {
   ui.showHud();
 }
 
+function highscoreLine(): string {
+  const hs = loadHighScore(selectedStage);
+  if (hs <= 0) return '';
+  const s = STAGES[selectedStage];
+  return `${s.icon} ${s.name}のハイスコア: 討伐 ${hs.toLocaleString()}人「${titleFor(hs, false)}」`;
+}
+
 function showTitle(): void {
-  const hs = loadHighScore();
-  ui.showTitle(hs, titleFor(hs, false));
+  ui.showTitle(highscoreLine());
+}
+
+/** このカードを取ると武器が進化するか（Lv5到達 + 対応パッシブ所持） */
+function evolveHints(choices: UpgradeChoice[]): boolean[] {
+  return choices.map((c) =>
+    c.kind === 'weapon' &&
+    c.nextLevel === MAX_SKILL_LEVEL &&
+    !world.evolved.has(c.id) &&
+    world.passives.has(EVOLUTIONS[c.id].passive));
+}
+
+function showLevelUpUi(): void {
+  if (world.pendingChoices) ui.showLevelUp(world.pendingChoices, evolveHints(world.pendingChoices));
 }
 
 function pickUpgrade(index: number): void {
   world.chooseUpgrade(index);
   if (world.pendingChoices) {
-    ui.showLevelUp(world.pendingChoices); // 複数レベル分の選択が残っている
+    showLevelUpUi(); // 複数レベル分の選択が残っている
   } else {
     ui.hideLevelUp();
   }
@@ -289,12 +311,28 @@ ui.onPick = (index) => {
   if (state === 'playing' && ui.levelUpVisible) pickUpgrade(index);
 };
 
-function loadHighScore(): number {
-  return Number(localStorage.getItem(HS_KEY) ?? 0);
+function loadHighScores(): Partial<Record<StageId, number>> {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(HS_KEY) ?? '{}') as Partial<Record<StageId, number>>;
+    // 旧形式（単一値）からの移行: 旧記録はオークの森の記録として扱う
+    const legacy = Number(localStorage.getItem(LEGACY_HS_KEY) ?? 0);
+    if (legacy > (parsed.grass ?? 0)) parsed.grass = legacy;
+    return parsed;
+  } catch {
+    return {};
+  }
+}
+
+function loadHighScore(stage: StageId): number {
+  return loadHighScores()[stage] ?? 0;
 }
 
 function saveHighScore(kills: number): void {
-  if (kills > loadHighScore()) localStorage.setItem(HS_KEY, String(kills));
+  const scores = loadHighScores();
+  if (kills > (scores[world.stage] ?? 0)) {
+    scores[world.stage] = kills;
+    localStorage.setItem(HS_KEY, JSON.stringify(scores));
+  }
 }
 
 // --- イベント処理 ---------------------------------------------------------------
@@ -356,7 +394,7 @@ function tick(now: number): void {
     processEvents();
 
     if (world.pendingChoices && !ui.levelUpVisible) {
-      ui.showLevelUp(world.pendingChoices);
+      showLevelUpUi();
     }
     if (bgmLevel === 1 && world.time >= GAME_DURATION / 2) {
       bgmLevel = 2;

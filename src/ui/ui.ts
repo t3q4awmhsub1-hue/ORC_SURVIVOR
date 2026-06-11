@@ -91,13 +91,14 @@ export class UI {
     done?.();
   }
 
-  showTitle(highScore: number, bestTitle: string): void {
+  showTitle(highscoreLine: string): void {
     this.hideAll();
-    const hs = el('highscore');
-    hs.textContent = highScore > 0
-      ? `ハイスコア: 討伐 ${highScore.toLocaleString()}人「${bestTitle}」`
-      : '';
+    el('highscore').textContent = highscoreLine;
     this.title.classList.remove('hidden');
+  }
+
+  updateHighscoreLine(line: string): void {
+    el('highscore').textContent = line;
   }
 
   showHud(): void {
@@ -152,19 +153,23 @@ export class UI {
     setTimeout(() => toast.remove(), legendary ? 5200 : 3200);
   }
 
-  showLevelUp(choices: UpgradeChoice[]): void {
+  /** evolveHints[i]=true のカードには「次で進化！」バッジを出す */
+  showLevelUp(choices: UpgradeChoice[], evolveHints: boolean[] = []): void {
     this.choicesBox.innerHTML = '';
     choices.forEach((c, i) => {
       const info = choiceInfo(c);
       const card = document.createElement('button');
-      card.className = 'choice';
+      card.className = evolveHints[i] ? 'choice evolve-ready' : 'choice';
       card.style.animationDelay = `${i * 0.09}s`;
       card.dataset.index = String(i);
+      const badge = evolveHints[i]
+        ? `<span class="evolve-badge">⚡ ${c.kind === 'weapon' ? EVOLUTIONS[c.id].name : ''}に進化！</span>`
+        : '';
       card.innerHTML = `
         <span class="choice-key">${i + 1}</span>
         <span class="choice-icon">${info.icon}</span>
         <span class="choice-name">${info.name} <em>${info.levelText}</em></span>
-        <span class="choice-desc">${info.desc}</span>`;
+        <span class="choice-desc">${info.desc}</span>${badge}`;
       this.choicesBox.appendChild(card);
     });
     this.levelup.classList.remove('hidden');
