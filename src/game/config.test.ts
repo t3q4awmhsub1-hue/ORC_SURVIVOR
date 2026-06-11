@@ -6,8 +6,8 @@ import {
 
 describe('expForLevel', () => {
   it('レベルに応じて単調増加する', () => {
-    expect(expForLevel(1)).toBe(15);
-    expect(expForLevel(2)).toBe(25);
+    expect(expForLevel(1)).toBe(12);
+    expect(expForLevel(2)).toBe(20);
     for (let lv = 1; lv < 50; lv++) {
       expect(expForLevel(lv + 1)).toBeGreaterThan(expForLevel(lv));
     }

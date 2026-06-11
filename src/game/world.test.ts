@@ -139,16 +139,24 @@ describe('レベルアップ', () => {
     w.hp = 50;
     w.pendingChoices = [{ kind: 'passive', id: 'bulk', nextLevel: 1 }];
     w.chooseUpgrade(0);
-    expect(w.maxHp).toBeCloseTo(120);
-    expect(w.hp).toBeCloseTo(70);
+    expect(w.maxHp).toBeCloseTo(PLAYER.maxHp * 1.2);
+    expect(w.hp).toBeCloseTo(50 + PLAYER.maxHp * 0.2);
   });
 
-  it('回復の選択肢はHPを30回復する（最大HPは超えない）', () => {
+  it('回復の選択肢はHPを30回復する', () => {
     const w = new GameWorld(1);
-    w.hp = 90;
+    w.hp = 50;
     w.pendingChoices = [{ kind: 'heal' }];
     w.chooseUpgrade(0);
-    expect(w.hp).toBe(100);
+    expect(w.hp).toBe(80);
+  });
+
+  it('回復は最大HPを超えない', () => {
+    const w = new GameWorld(1);
+    w.hp = PLAYER.maxHp - 10;
+    w.pendingChoices = [{ kind: 'heal' }];
+    w.chooseUpgrade(0);
+    expect(w.hp).toBe(PLAYER.maxHp);
   });
 });
 

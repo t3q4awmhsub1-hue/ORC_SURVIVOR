@@ -15,12 +15,12 @@ export const MAX_PASSIVE_SLOTS = 4;
 export const MAX_SKILL_LEVEL = 5;
 
 export const PLAYER = {
-  maxHp: 100,
+  maxHp: 120,
   speed: 5.0,
   radius: 0.55,
-  magnet: 2.0,
+  magnet: 2.6,
   /** 接触ダメージを受けた直後の無敵時間（連続ヒットの緩和） */
-  hurtCooldown: 0.4,
+  hurtCooldown: 0.45,
 } as const;
 
 export interface RangedDef {
@@ -48,13 +48,13 @@ export interface EnemyDef {
 }
 
 export const ENEMY_DEFS: Record<EnemyKind, EnemyDef> = {
-  trainee:    { hp: 10,  speed: 1.7, dmg: 6,  score: 1,   xp: 1,  radius: 0.35, kbResist: 0 },
-  adventurer: { hp: 22,  speed: 2.3, dmg: 9,  score: 2,   xp: 2,  radius: 0.35, kbResist: 0 },
+  trainee:    { hp: 10,  speed: 1.7, dmg: 5,  score: 1,   xp: 1,  radius: 0.35, kbResist: 0 },
+  adventurer: { hp: 22,  speed: 2.2, dmg: 8,  score: 2,   xp: 2,  radius: 0.35, kbResist: 0 },
   archer:     { hp: 20,  speed: 2.2, dmg: 5,  score: 5,   xp: 4,  radius: 0.35, kbResist: 0,
-                ranged: { range: 8, cooldown: 2.6, projSpeed: 9, dmg: 7, projKind: 'arrow' } },
+                ranged: { range: 8, cooldown: 3.0, projSpeed: 7.5, dmg: 5, projKind: 'arrow' } },
   mage:       { hp: 30,  speed: 1.6, dmg: 5,  score: 8,   xp: 6,  radius: 0.35, kbResist: 0,
-                ranged: { range: 10, cooldown: 3.6, projSpeed: 5.5, dmg: 13, projKind: 'bolt' } },
-  knight:     { hp: 90,  speed: 1.4, dmg: 14, score: 10,  xp: 8,  radius: 0.45, kbResist: 0.8 },
+                ranged: { range: 10, cooldown: 4.2, projSpeed: 5.5, dmg: 11, projKind: 'bolt' } },
+  knight:     { hp: 90,  speed: 1.4, dmg: 12, score: 10,  xp: 8,  radius: 0.45, kbResist: 0.8 },
   paladin:    { hp: 320, speed: 1.9, dmg: 18, score: 20,  xp: 25, radius: 0.55, kbResist: 0.9,
                 auraSpeedMul: 1.45, auraRadius: 6 },
   hero:       { hp: 2600, speed: 3.1, dmg: 22, score: 500, xp: 0, radius: 0.65, kbResist: 1 },
@@ -66,7 +66,7 @@ export function enemyHpScale(timeSec: number): number {
 }
 
 export function expForLevel(level: number): number {
-  return 5 + level * 10;
+  return 4 + level * 8;
 }
 
 // ---------------------------------------------------------------------------
@@ -128,8 +128,8 @@ export const PASSIVE_STATS = {
   nose:     (lv: number) => 1 + lv * 0.30,  // 吸引半径倍率
 } as const;
 
-export const BASE_MEAT_DROP = 0.015;
-export const BASE_MEAT_HEAL = 20;
+export const BASE_MEAT_DROP = 0.02;
+export const BASE_MEAT_HEAL = 25;
 
 // ---------------------------------------------------------------------------
 // スキルのメタ情報（UI表示用）
@@ -169,12 +169,12 @@ export interface SpawnPhase {
 
 export const SPAWN_PHASES: SpawnPhase[] = [
   { from: 0,   rate: 0.9, weights: { trainee: 1 } },
-  { from: 60,  rate: 1.4, weights: { trainee: 0.7, adventurer: 0.3 } },
-  { from: 120, rate: 1.7, weights: { trainee: 0.55, adventurer: 0.3, archer: 0.15 } },
+  { from: 60,  rate: 1.2, weights: { trainee: 0.7, adventurer: 0.3 } },
+  { from: 120, rate: 1.5, weights: { trainee: 0.55, adventurer: 0.3, archer: 0.15 } },
   { from: 240, rate: 2.0, weights: { trainee: 0.4, adventurer: 0.3, archer: 0.15, mage: 0.15 } },
   { from: 300, rate: 2.4, weights: { trainee: 0.28, adventurer: 0.3, archer: 0.15, mage: 0.12, knight: 0.15 } },
   { from: 450, rate: 3.0, weights: { trainee: 0.15, adventurer: 0.33, archer: 0.18, mage: 0.14, knight: 0.2 } },
-  { from: 540, rate: 3.8, weights: { adventurer: 0.35, archer: 0.2, mage: 0.15, knight: 0.3 } },
+  { from: 540, rate: 3.4, weights: { adventurer: 0.35, archer: 0.2, mage: 0.15, knight: 0.3 } },
 ];
 
 export interface SpawnWave {
@@ -186,8 +186,8 @@ export interface SpawnWave {
 
 export const SPAWN_WAVES: SpawnWave[] = [
   { at: 180, spawns: { trainee: 40 }, ring: true },
-  { at: 360, spawns: { paladin: 1, adventurer: 20 } },
-  { at: 540, spawns: { paladin: 3, knight: 8 } },
+  { at: 360, spawns: { paladin: 1, adventurer: 14 } },
+  { at: 540, spawns: { paladin: 2, knight: 8 } },
 ];
 
 export function phaseAt(timeSec: number): SpawnPhase {

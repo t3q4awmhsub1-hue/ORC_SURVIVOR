@@ -388,9 +388,19 @@ export class GameWorld {
     }
   }
 
+  /** 扇状攻撃の照準方向: 射程内の最寄りの敵（いなければ向いている方向） */
+  private aimDir(searchRange: number): { x: number; z: number } {
+    const i = this.nearestEnemy(this.px, this.pz, searchRange);
+    if (i < 0) return { x: this.facingX, z: this.facingZ };
+    const e = this.enemies[i];
+    const d = Math.hypot(e.x - this.px, e.z - this.pz) || 1;
+    return { x: (e.x - this.px) / d, z: (e.z - this.pz) / d };
+  }
+
   private fireClub(lv: number): void {
     const s = C.WEAPON_STATS.club(lv);
     this.emit({ type: 'clubSwing' });
+    const aim = this.aimDir(s.range * 1.5);
     const n = this.grid.queryCircle(this.px, this.pz, s.range, this.queryOut);
     const cosHalf = Math.cos(s.arc / 2);
     for (let k = 0; k < n; k++) {
@@ -398,7 +408,7 @@ export class GameWorld {
       const dx = e.x - this.px;
       const dz = e.z - this.pz;
       const d = Math.hypot(dx, dz) || 1;
-      const dot = (dx / d) * this.facingX + (dz / d) * this.facingZ;
+      const dot = (dx / d) * aim.x + (dz / d) * aim.z;
       if (dot >= cosHalf) {
         this.damageEnemy(e, s.dmg, dx / d, dz / d, s.knockback);
       }
@@ -448,6 +458,7 @@ export class GameWorld {
   private fireRoar(lv: number): void {
     const s = C.WEAPON_STATS.roar(lv);
     this.emit({ type: 'roar', x: this.px, z: this.pz, value: s.range });
+    const aim = this.aimDir(s.range * 1.3);
     const n = this.grid.queryCircle(this.px, this.pz, s.range, this.queryOut);
     const cosHalf = Math.cos(s.arc / 2);
     for (let k = 0; k < n; k++) {
@@ -455,7 +466,7 @@ export class GameWorld {
       const dx = e.x - this.px;
       const dz = e.z - this.pz;
       const d = Math.hypot(dx, dz) || 1;
-      const dot = (dx / d) * this.facingX + (dz / d) * this.facingZ;
+      const dot = (dx / d) * aim.x + (dz / d) * aim.z;
       if (dot >= cosHalf) {
         this.damageEnemy(e, s.dmg, dx / d, dz / d, s.knockback, s.stun);
       }
@@ -633,9 +644,10 @@ export class GameWorld {
           if (d > def.ranged.range * 0.9) {
             e.x += (dx / d) * speed * dt;
             e.z += (dz / d) * speed * dt;
-          } else if (d < def.ranged.range * 0.5) {
-            e.x -= (dx / d) * speed * dt;
-            e.z -= (dz / d) * speed * dt;
+          } else if (d < def.ranged.range * 0.3) {
+            // 完全な安全圏を作らせない: 近接の間合い近くまでは粘る
+            e.x -= (dx / d) * speed * 0.8 * dt;
+            e.z -= (dz / d) * speed * 0.8 * dt;
           }
           if (e.shootCd <= 0 && d <= def.ranged.range) {
             e.shootCd = def.ranged.cooldown;
