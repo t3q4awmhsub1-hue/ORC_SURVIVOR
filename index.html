@@ -103,14 +103,24 @@
 
     /* プロローグ */
     #prologue {
-      background: radial-gradient(ellipse at 50% 40%, #131d0e 0%, #050803 90%);
-      cursor: pointer; justify-content: center; gap: 0;
+      background: #050803;
+      cursor: pointer; justify-content: flex-end; gap: 0; padding-bottom: 84px;
+    }
+    #prologue-scene { position: absolute; inset: 0; }
+    #prologue-scene canvas { display: block; }
+    #prologue-scrim {
+      position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(to bottom,
+        rgba(5, 8, 3, 0.25) 0%, rgba(5, 8, 3, 0) 30%,
+        rgba(5, 8, 3, 0) 45%, rgba(5, 8, 3, 0.82) 82%, rgba(5, 8, 3, 0.92) 100%);
     }
     #prologue-text {
-      max-width: 720px; padding: 0 24px; display: flex; flex-direction: column; gap: 18px;
+      position: relative; max-width: 760px; padding: 0 24px;
+      display: flex; flex-direction: column; gap: 10px;
     }
     .story-line {
-      margin: 0; font-size: clamp(16px, 2.6vw, 22px); line-height: 1.9; color: #cfd9c2;
+      margin: 0; font-size: clamp(15px, 2.4vw, 21px); line-height: 1.85; color: #e4ead8;
+      text-shadow: 0 1px 3px rgba(0,0,0,.9), 0 0 18px rgba(0,0,0,.6);
       opacity: 0; animation: storyIn 1.1s ease forwards;
     }
     .story-line.em { color: #ffe97a; font-weight: 900; font-size: clamp(18px, 3vw, 26px); }
@@ -192,6 +202,8 @@
   </div>
 
   <div id="prologue" class="screen hidden">
+    <div id="prologue-scene"></div>
+    <div id="prologue-scrim"></div>
     <div id="prologue-text"></div>
     <div id="prologue-dots"></div>
     <div id="prologue-hint">クリック / SPACE: 次へ　　ESC: スキップ</div>

@@ -35,8 +35,8 @@ export class UI {
   private onPrologueDone: (() => void) | null = null;
 
   onPick: ((index: number) => void) | null = null;
-  /** プロローグのページ送り時に呼ばれる（効果音用） */
-  onPrologueAdvance: (() => void) | null = null;
+  /** プロローグのページ表示時に呼ばれる（効果音・ジオラマ切替用） */
+  onPrologueAdvance: ((page: number) => void) | null = null;
 
   constructor() {
     this.choicesBox.addEventListener('click', (ev) => {
@@ -65,7 +65,7 @@ export class UI {
       this.endPrologue();
       return;
     }
-    this.onPrologueAdvance?.();
+    this.onPrologueAdvance?.(this.prologuePage);
     const page = PROLOGUE_PAGES[this.prologuePage];
     this.prologueText.innerHTML = '';
     page.lines.forEach((line, i) => {

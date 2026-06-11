@@ -1,6 +1,7 @@
 import { GAME_DURATION, titleFor } from './game/config';
 import { GameWorld } from './game/world';
 import { GameRenderer } from './render/renderer';
+import { PrologueScenes } from './render/prologueScenes';
 import { Sound } from './audio/sound';
 import { UI, collectStats } from './ui/ui';
 
@@ -130,10 +131,17 @@ function requestStart(): void {
   }
 }
 
+let prologueScenes: PrologueScenes | null = null;
+
 function playPrologue(): void {
   state = 'prologue';
   localStorage.setItem(PROLOGUE_SEEN_KEY, '1');
-  ui.onPrologueAdvance = () => sound.page();
+  // ジオラマは初回再生時に遅延生成（起動コストをタイトルにかけない）
+  prologueScenes ??= new PrologueScenes(document.getElementById('prologue-scene')!);
+  ui.onPrologueAdvance = (page) => {
+    sound.page();
+    prologueScenes!.setPage(page);
+  };
   ui.startPrologue(() => startRun());
 }
 
@@ -167,6 +175,11 @@ function pickUpgrade(index: number): void {
     ui.hideLevelUp();
   }
 }
+
+// レベルアップカードのマウスクリック選択
+ui.onPick = (index) => {
+  if (state === 'playing' && ui.levelUpVisible) pickUpgrade(index);
+};
 
 function loadHighScore(): number {
   return Number(localStorage.getItem(HS_KEY) ?? 0);
@@ -241,7 +254,11 @@ function tick(now: number): void {
     }
   }
 
-  renderer.render(world, dt);
+  if (state === 'prologue' && prologueScenes) {
+    prologueScenes.render(dt);
+  } else {
+    renderer.render(world, dt);
+  }
 }
 
 showTitle();
