@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>ORC SURVIVOR — アセットビューワー</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { margin: 0; overflow: hidden; font-family: system-ui, sans-serif; }
+    #info {
+      position: fixed; top: 10px; left: 10px; z-index: 10;
+      color: #fff; background: rgba(0, 0, 0, .55);
+      padding: 8px 12px; border-radius: 8px; font-size: 13px;
+    }
+    .label {
+      color: #fff; background: rgba(0, 0, 0, .55);
+      padding: 2px 8px; border-radius: 10px; font-size: 12px;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">ORC SURVIVOR アセットビューワー — ドラッグで回転 / ホイールでズーム</div>
+  <script type="module" src="/src/viewer/main.ts"></script>
+</body>
+</html>

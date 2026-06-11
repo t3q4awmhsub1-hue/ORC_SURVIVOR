@@ -145,7 +145,17 @@ function hold(arm: THREE.Group, weapon: THREE.Group, rotX = 0, rotZ = 0): void {
 // ---------------------------------------------------------------------------
 // オーク（プレイヤー）。原点 = 足元、身長 ≈ 2.1
 // ---------------------------------------------------------------------------
-export function buildOrc(): THREE.Group {
+
+/** アニメーション用に可動部の参照を持つリグ */
+export interface OrcRig {
+  root: THREE.Group;
+  upper: THREE.Group;   // 前傾上半身（猫背ピボット）
+  headPivot: THREE.Group;
+  armL: THREE.Group;
+  armR: THREE.Group;    // 棍棒を持つ腕
+}
+
+export function buildOrcRig(): OrcRig {
   const root = new THREE.Group();
 
   // 短く太い脚
@@ -202,7 +212,7 @@ export function buildOrc(): THREE.Group {
     upper.add(arm);
     return arm;
   };
-  mkArm(-1);
+  const armL = mkArm(-1);
   const armR = mkArm(1);
   armR.rotation.x = -0.45;
 
@@ -212,10 +222,14 @@ export function buildOrc(): THREE.Group {
   club.rotation.x = 0.45;
   armR.add(club);
 
-  return root;
+  return { root, upper, headPivot, armL, armR };
 }
 
-/** 子分オーク（召喚スキル用）: 本体の縮小 + 棍棒なし素手 */
+export function buildOrc(): THREE.Group {
+  return buildOrcRig().root;
+}
+
+/** 子分オーク（召喚スキル用）: 本体の縮小 */
 export function buildMinionOrc(): THREE.Group {
   const g = buildOrc();
   g.scale.setScalar(0.62);
