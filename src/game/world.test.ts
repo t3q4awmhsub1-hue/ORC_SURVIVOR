@@ -170,13 +170,13 @@ describe('スポーンタイムライン', () => {
     expect([...kinds]).toEqual(['trainee']);
   });
 
-  it('3:00の第1波で総スポーン数が一気に増える', () => {
-    const before = totalSpawned(179);
-    const after = totalSpawned(181);
+  it('1:30の第1波で総スポーン数が一気に増える', () => {
+    const before = totalSpawned(89);
+    const after = totalSpawned(91);
     expect(after - before).toBeGreaterThanOrEqual(40);
   });
 
-  it('10:00で雑魚スポーンが止まりボスが1体だけ出現する', () => {
+  it('5:00で雑魚スポーンが止まりボスが1体だけ出現する', () => {
     const w = new GameWorld(1);
     makeInvincible(w);
     stepAuto(w, GAME_DURATION + 2, IDLE);

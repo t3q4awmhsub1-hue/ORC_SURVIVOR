@@ -163,6 +163,31 @@ export class UI {
   showPause(): void { this.pause.classList.remove('hidden'); }
   hidePause(): void { this.pause.classList.add('hidden'); }
 
+  // --- エンディング ----------------------------------------------------------
+  showEnding(): void {
+    this.hideAll();
+    el('ending-fin').classList.add('hidden');
+    el('ending-subtitle').classList.remove('show');
+    el('ending').classList.remove('hidden');
+  }
+
+  setEndingSubtitle(text: string): void {
+    const sub = el('ending-subtitle');
+    sub.classList.remove('show');
+    void sub.offsetWidth; // フェードを再トリガ
+    sub.textContent = text;
+    sub.classList.add('show');
+  }
+
+  showEndingFin(): void {
+    el('ending-subtitle').classList.remove('show');
+    el('ending-fin').classList.remove('hidden');
+  }
+
+  hideEnding(): void {
+    el('ending').classList.add('hidden');
+  }
+
   showResult(stats: RunStats, url: string): void {
     this.hud.classList.add('hidden');
     el('result-headline').textContent = stats.won

@@ -6,8 +6,8 @@ import {
 
 describe('expForLevel', () => {
   it('レベルに応じて単調増加する', () => {
-    expect(expForLevel(1)).toBe(12);
-    expect(expForLevel(2)).toBe(20);
+    expect(expForLevel(1)).toBe(9);
+    expect(expForLevel(2)).toBe(15);
     for (let lv = 1; lv < 50; lv++) {
       expect(expForLevel(lv + 1)).toBeGreaterThan(expForLevel(lv));
     }
@@ -15,9 +15,9 @@ describe('expForLevel', () => {
 });
 
 describe('enemyHpScale', () => {
-  it('開始時は1倍、10分で2.5倍', () => {
+  it('開始時は1倍、5分（ゲーム終了時刻）で2.5倍', () => {
     expect(enemyHpScale(0)).toBe(1);
-    expect(enemyHpScale(600)).toBeCloseTo(2.5);
+    expect(enemyHpScale(GAME_DURATION)).toBeCloseTo(2.5);
   });
 });
 
@@ -28,12 +28,12 @@ describe('phaseAt', () => {
   });
 
   it('フェーズ境界ちょうどで次のフェーズに切り替わる', () => {
-    expect(phaseAt(59.999).from).toBe(0);
-    expect(phaseAt(60).from).toBe(60);
+    expect(phaseAt(29.999).from).toBe(0);
+    expect(phaseAt(30).from).toBe(30);
   });
 
   it('終盤フェーズは出現レートが序盤より高い', () => {
-    expect(phaseAt(599).rate).toBeGreaterThan(phaseAt(0).rate * 3);
+    expect(phaseAt(GAME_DURATION - 1).rate).toBeGreaterThan(phaseAt(0).rate * 3);
   });
 
   it('全フェーズの重み合計はほぼ1（抽選の前提）', () => {
@@ -78,7 +78,7 @@ describe('titleFor', () => {
 });
 
 describe('敵定義の整合性', () => {
-  it('ボスは経過時間スケールなしでも10分時点の雑魚より十分硬い', () => {
+  it('ボスは経過時間スケールなしでも終了時点の雑魚より十分硬い', () => {
     const knightAt10min = ENEMY_DEFS.knight.hp * enemyHpScale(GAME_DURATION);
     expect(ENEMY_DEFS.hero.hp).toBeGreaterThan(knightAt10min * 5);
   });

@@ -2,13 +2,14 @@ import { GAME_DURATION, titleFor } from './game/config';
 import { GameWorld } from './game/world';
 import { GameRenderer } from './render/renderer';
 import { PrologueScenes } from './render/prologueScenes';
+import { EndingPlayer } from './render/endingScenes';
 import { Sound } from './audio/sound';
 import { UI, collectStats } from './ui/ui';
 
 const GAME_URL = 'https://t3q4awmhsub1-hue.github.io/ORC_SURVIVOR/';
 const HS_KEY = 'orc-survivor-highscore';
 
-type AppState = 'title' | 'prologue' | 'playing' | 'paused' | 'result';
+type AppState = 'title' | 'prologue' | 'playing' | 'paused' | 'ending' | 'result';
 const PROLOGUE_SEEN_KEY = 'orc-survivor-prologue-seen';
 
 const ui = new UI();
@@ -28,6 +29,8 @@ declare global {
       fps: () => number;
       start: () => void;
       bench: (frames?: number) => number;
+      forceEnding: () => void;
+      endingStep: (dt?: number) => void;
     };
   }
 }
@@ -47,6 +50,9 @@ window.__game = {
     }
     return (performance.now() - t0) / frames;
   },
+  // エンディング演出の検証用（rAFスロットリング環境でも進められる）
+  forceEnding: () => beginEnding(),
+  endingStep: (dt = 0.5) => ending?.render(dt),
 };
 
 // --- 入力 -------------------------------------------------------------------
@@ -68,6 +74,9 @@ addEventListener('keydown', (ev) => {
     case 'prologue':
       if (ev.code === 'Space' || ev.code === 'Enter') ui.prologueNext();
       else if (ev.code === 'Escape') ui.prologueSkip();
+      break;
+    case 'ending':
+      if (ev.code === 'Space' || ev.code === 'Enter' || ev.code === 'Escape') showResultNow();
       break;
     case 'playing':
       if (ui.levelUpVisible) {
@@ -132,6 +141,35 @@ function requestStart(): void {
 }
 
 let prologueScenes: PrologueScenes | null = null;
+let ending: EndingPlayer | null = null;
+let finTimer = -1; // 「完」カード表示からリザルトまでの残り秒。負なら未表示
+
+function beginEnding(): void {
+  state = 'ending';
+  finTimer = -1;
+  ending ??= new EndingPlayer(document.getElementById('ending-scene')!);
+  ending.onSubtitle = (text) => ui.setEndingSubtitle(text);
+  ending.onFinished = () => {
+    ui.showEndingFin();
+    finTimer = 3.4;
+  };
+  ui.showEnding();
+  sound.playEndingTheme();
+  ending.start();
+}
+
+function showResultNow(): void {
+  ending?.stop();
+  sound.stopEndingTheme();
+  ui.hideEnding();
+  state = 'result';
+  saveHighScore(world.kills);
+  ui.showResult(collectStats(world, titleFor(world.kills, world.state === 'won')), GAME_URL);
+}
+
+document.getElementById('ending')!.addEventListener('click', () => {
+  if (state === 'ending') showResultNow();
+});
 
 function playPrologue(): void {
   state = 'prologue';
@@ -247,15 +285,23 @@ function tick(now: number): void {
     if (world.state !== 'playing') {
       resultDelay += dt;
       if (resultDelay > 1.4) {
-        state = 'result';
-        saveHighScore(world.kills);
-        ui.showResult(collectStats(world, titleFor(world.kills, world.state === 'won')), GAME_URL);
+        if (world.state === 'won') {
+          beginEnding(); // 勝利はエンディングシネマを経由する
+        } else {
+          showResultNow();
+        }
       }
     }
   }
 
   if (state === 'prologue' && prologueScenes) {
     prologueScenes.render(dt);
+  } else if (state === 'ending' && ending) {
+    ending.render(dt);
+    if (finTimer > 0) {
+      finTimer -= dt;
+      if (finTimer <= 0) showResultNow();
+    }
   } else {
     renderer.render(world, dt);
   }

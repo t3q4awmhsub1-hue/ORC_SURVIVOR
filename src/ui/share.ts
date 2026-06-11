@@ -47,7 +47,7 @@ export function drawShareCard(canvas: HTMLCanvasElement, stats: RunStats): void 
   ctx.fillText('ORC SURVIVOR', 600, 110);
   ctx.font = 'bold 30px sans-serif';
   ctx.fillStyle = '#c9d6bb';
-  ctx.fillText('〜10分間、勇者を返り討て〜', 600, 158);
+  ctx.fillText('〜5分間、勇者を返り討て〜', 600, 158);
 
   // 勝敗
   ctx.font = '900 44px sans-serif';

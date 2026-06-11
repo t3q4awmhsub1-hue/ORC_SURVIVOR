@@ -1,13 +1,13 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>ORC SURVIVOR 〜10分間、勇者を返り討て〜</title>
+  <title>ORC SURVIVOR 〜5分間、勇者を返り討て〜</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='6' width='24' height='20' rx='4' fill='%235d9b45'/%3E%3Crect x='9' y='13' width='5' height='3' fill='%23ff2e1f'/%3E%3Crect x='18' y='13' width='5' height='3' fill='%23ff2e1f'/%3E%3Cpath d='M9 26 L11 19 L13 26 Z' fill='%23efe8d8'/%3E%3Cpath d='M23 26 L21 19 L19 26 Z' fill='%23efe8d8'/%3E%3C/svg%3E" />
-  <meta name="description" content="あなたはオーク。無限に湧いてくる勇者の大群を薙ぎ払い、10分間生き残れ。ブラウザで今すぐ遊べる立場逆転サバイバー。" />
-  <meta property="og:title" content="ORC SURVIVOR 〜10分間、勇者を返り討て〜" />
-  <meta property="og:description" content="あなたはオーク。無限に湧いてくる勇者の大群を薙ぎ払い、10分間生き残れ。" />
+  <meta name="description" content="あなたはオーク。無限に湧いてくる勇者の大群を薙ぎ払い、5分間生き残れ。ブラウザで今すぐ遊べる立場逆転サバイバー。" />
+  <meta property="og:title" content="ORC SURVIVOR 〜5分間、勇者を返り討て〜" />
+  <meta property="og:description" content="あなたはオーク。無限に湧いてくる勇者の大群を薙ぎ払い、5分間生き残れ。" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://t3q4awmhsub1-hue.github.io/ORC_SURVIVOR/" />
   <meta property="og:image" content="https://t3q4awmhsub1-hue.github.io/ORC_SURVIVOR/ogp.png" />
@@ -133,6 +133,43 @@
     .dot { width: 8px; height: 8px; border-radius: 50%; background: #3a4a33; }
     .dot.on { background: #7ed957; }
 
+    /* エンディング（映画調） */
+    #ending { position: fixed; inset: 0; z-index: 22; background: #000; cursor: pointer; }
+    #ending-scene { position: absolute; inset: 0; animation: endingFade 1.6s ease; }
+    #ending-scene canvas { display: block; }
+    @keyframes endingFade { from { opacity: 0; } to { opacity: 1; } }
+    .letterbox {
+      position: absolute; left: 0; right: 0; height: 11vh; background: #000; z-index: 2;
+    }
+    .letterbox.top { top: 0; transform: translateY(-100%); animation: boxIn 1.4s ease forwards; }
+    .letterbox.bottom { bottom: 0; transform: translateY(100%); animation: boxIn 1.4s ease forwards; }
+    @keyframes boxIn { to { transform: translateY(0); } }
+    #ending-subtitle {
+      position: absolute; bottom: 13.5vh; left: 0; right: 0; z-index: 3; margin: 0;
+      text-align: center; color: #f3efe2; font-size: clamp(17px, 2.6vw, 26px);
+      font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'MS PMincho', serif;
+      letter-spacing: 0.14em; text-shadow: 0 1px 4px rgba(0,0,0,.95), 0 0 22px rgba(0,0,0,.7);
+      opacity: 0;
+    }
+    #ending-subtitle.show { animation: subIn 0.9s ease forwards; }
+    @keyframes subIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    #ending-fin {
+      position: absolute; inset: 0; z-index: 4; background: #000;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+      animation: endingFade 2.2s ease;
+    }
+    #ending-fin h2 {
+      margin: 0; font-size: clamp(40px, 8vw, 84px); font-weight: 900; color: var(--green);
+      letter-spacing: 6px; text-shadow: 0 4px 0 #2c4a20;
+    }
+    #ending-fin p {
+      margin: 0; color: #cfd9c2; font-size: clamp(16px, 2.4vw, 24px); letter-spacing: 0.5em;
+      font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+    }
+    #ending-hint {
+      position: absolute; bottom: 3.5vh; right: 30px; z-index: 5; font-size: 12px; color: #6a7a5a;
+    }
+
     /* レベルアップ */
     #levelup h2 {
       font-size: 42px; margin: 0 0 8px; color: #ffe97a; font-weight: 900;
@@ -193,7 +230,7 @@
 
   <div id="title-screen" class="screen">
     <h1 class="logo">ORC<br>SURVIVOR</h1>
-    <p class="tagline">〜10分間、勇者を返り討て〜</p>
+    <p class="tagline">〜5分間、勇者を返り討て〜</p>
     <p id="highscore"></p>
     <button id="start">ゲーム開始 (SPACE)</button>
     <button id="replay-prologue" class="ghost">📜 物語をみる</button>
@@ -207,6 +244,18 @@
     <div id="prologue-text"></div>
     <div id="prologue-dots"></div>
     <div id="prologue-hint">クリック / SPACE: 次へ　　ESC: スキップ</div>
+  </div>
+
+  <div id="ending" class="hidden">
+    <div id="ending-scene"></div>
+    <div class="letterbox top"></div>
+    <div class="letterbox bottom"></div>
+    <p id="ending-subtitle"></p>
+    <div id="ending-fin" class="hidden">
+      <h2>ORC SURVIVOR</h2>
+      <p>— 完 —</p>
+    </div>
+    <div id="ending-hint">クリック / ESC: スキップ</div>
   </div>
 
   <div id="levelup" class="screen hidden">

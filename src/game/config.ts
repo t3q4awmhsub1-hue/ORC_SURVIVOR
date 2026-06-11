@@ -6,7 +6,7 @@ export type WeaponKind = 'club' | 'bone' | 'stomp' | 'roar' | 'pig' | 'minion';
 export type PassiveKind = 'muscle' | 'skin' | 'trotters' | 'glutton' | 'bulk' | 'nose';
 export type ProjectileKind = 'bone' | 'arrow' | 'bolt';
 
-export const GAME_DURATION = 600;     // 10分（秒）
+export const GAME_DURATION = 300;     // 5分（秒）
 export const ARENA_RADIUS = 55;       // 移動可能範囲
 export const ENEMY_CAP = 300;         // 同時存在上限
 export const GEM_CAP = 400;
@@ -57,16 +57,16 @@ export const ENEMY_DEFS: Record<EnemyKind, EnemyDef> = {
   knight:     { hp: 90,  speed: 1.4, dmg: 12, score: 10,  xp: 8,  radius: 0.45, kbResist: 0.8 },
   paladin:    { hp: 320, speed: 1.9, dmg: 18, score: 20,  xp: 25, radius: 0.55, kbResist: 0.9,
                 auraSpeedMul: 1.45, auraRadius: 6 },
-  hero:       { hp: 2600, speed: 3.1, dmg: 22, score: 500, xp: 0, radius: 0.65, kbResist: 1 },
+  hero:       { hp: 1800, speed: 3.1, dmg: 22, score: 500, xp: 0, radius: 0.65, kbResist: 1 },
 };
 
-/** 経過時間による敵HPスケール（分単位） */
+/** 経過時間による敵HPスケール（5分で2.5倍） */
 export function enemyHpScale(timeSec: number): number {
-  return 1 + (timeSec / 60) * 0.15;
+  return 1 + (timeSec / 60) * 0.3;
 }
 
 export function expForLevel(level: number): number {
-  return 4 + level * 8;
+  return 3 + level * 6;
 }
 
 // ---------------------------------------------------------------------------
@@ -168,13 +168,13 @@ export interface SpawnPhase {
 }
 
 export const SPAWN_PHASES: SpawnPhase[] = [
-  { from: 0,   rate: 0.9, weights: { trainee: 1 } },
-  { from: 60,  rate: 1.2, weights: { trainee: 0.7, adventurer: 0.3 } },
-  { from: 120, rate: 1.5, weights: { trainee: 0.55, adventurer: 0.3, archer: 0.15 } },
-  { from: 240, rate: 2.0, weights: { trainee: 0.4, adventurer: 0.3, archer: 0.15, mage: 0.15 } },
-  { from: 300, rate: 2.4, weights: { trainee: 0.28, adventurer: 0.3, archer: 0.15, mage: 0.12, knight: 0.15 } },
-  { from: 450, rate: 3.0, weights: { trainee: 0.15, adventurer: 0.33, archer: 0.18, mage: 0.14, knight: 0.2 } },
-  { from: 540, rate: 3.4, weights: { adventurer: 0.35, archer: 0.2, mage: 0.15, knight: 0.3 } },
+  { from: 0,   rate: 1.0, weights: { trainee: 1 } },
+  { from: 30,  rate: 1.4, weights: { trainee: 0.7, adventurer: 0.3 } },
+  { from: 60,  rate: 1.8, weights: { trainee: 0.55, adventurer: 0.3, archer: 0.15 } },
+  { from: 120, rate: 2.2, weights: { trainee: 0.4, adventurer: 0.3, archer: 0.15, mage: 0.15 } },
+  { from: 150, rate: 2.6, weights: { trainee: 0.28, adventurer: 0.3, archer: 0.15, mage: 0.12, knight: 0.15 } },
+  { from: 225, rate: 3.2, weights: { trainee: 0.15, adventurer: 0.33, archer: 0.18, mage: 0.14, knight: 0.2 } },
+  { from: 270, rate: 3.6, weights: { adventurer: 0.35, archer: 0.2, mage: 0.15, knight: 0.3 } },
 ];
 
 export interface SpawnWave {
@@ -185,9 +185,9 @@ export interface SpawnWave {
 }
 
 export const SPAWN_WAVES: SpawnWave[] = [
-  { at: 180, spawns: { trainee: 40 }, ring: true },
-  { at: 360, spawns: { paladin: 1, adventurer: 14 } },
-  { at: 540, spawns: { paladin: 2, knight: 8 } },
+  { at: 90,  spawns: { trainee: 40 }, ring: true },
+  { at: 180, spawns: { paladin: 1, adventurer: 14 } },
+  { at: 270, spawns: { paladin: 2, knight: 8 } },
 ];
 
 export function phaseAt(timeSec: number): SpawnPhase {

@@ -102,6 +102,68 @@ export class Sound {
     [330, 277, 233, 196].forEach((f, i) => this.tone(f, 0.3, 'triangle', 0.12, undefined, i * 0.18));
   }
 
+  // --- エンディングテーマ（オルゴール調・約30秒を一括スケジュール） ---------------
+  private endingGain: GainNode | null = null;
+
+  playEndingTheme(): void {
+    if (!this.ctx || !this.master) return;
+    this.stopEndingTheme();
+    this.endingGain = this.ctx.createGain();
+    this.endingGain.gain.value = 0.3;
+    this.endingGain.connect(this.master);
+    const t0 = this.ctx.currentTime + 0.3;
+    const beat = 0.62;
+
+    // C - G - Am - F の循環（オルゴールのアルペジオ + 柔らかいパッド + 低音）
+    const chords: number[][] = [
+      [261.6, 329.6, 392.0, 523.3],
+      [196.0, 246.9, 392.0, 493.9],
+      [220.0, 261.6, 329.6, 440.0],
+      [174.6, 261.6, 349.2, 440.0],
+    ];
+    const roots = [65.4, 49.0, 55.0, 43.7];
+    for (let bar = 0; bar < 12; bar++) {
+      const chord = chords[bar % 4];
+      const barT = t0 + bar * beat * 4;
+      // 低音とパッド
+      this.box(roots[bar % 4], barT, beat * 4.1, 'sine', 0.22);
+      this.box(chord[0], barT, beat * 4.0, 'triangle', 0.07);
+      this.box(chord[1], barT, beat * 4.0, 'triangle', 0.06);
+      // オルゴールの分散和音
+      for (let n = 0; n < 8; n++) {
+        const note = chord[[0, 2, 1, 3, 2, 1, 3, 2][n]] * 2;
+        this.box(note, barT + n * beat * 0.5, beat * 1.6, 'sine', 0.12);
+      }
+    }
+    // 終止音
+    this.box(523.3, t0 + 12 * beat * 4, 4, 'sine', 0.14);
+    this.box(261.6, t0 + 12 * beat * 4, 4, 'sine', 0.12);
+    this.box(65.4, t0 + 12 * beat * 4, 4.2, 'sine', 0.2);
+  }
+
+  stopEndingTheme(): void {
+    if (this.endingGain) {
+      this.endingGain.disconnect();
+      this.endingGain = null;
+    }
+  }
+
+  /** エンディング専用ゲインに直接鳴らすトーン */
+  private box(freq: number, t0: number, dur: number, type: OscillatorType, vol: number): void {
+    if (!this.ctx || !this.endingGain) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(vol, t0 + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    osc.connect(gain);
+    gain.connect(this.endingGain);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.05);
+  }
+
   // --- BGM（16ステップのループシーケンサ） -------------------------------------
   startBgm(): void {
     if (!this.ctx || this.bgmTimer !== null) return;

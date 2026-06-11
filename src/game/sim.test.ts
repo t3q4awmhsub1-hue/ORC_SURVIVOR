@@ -178,30 +178,31 @@ function runSim(seed: number, maxSec: number): SimResult {
 
 describe('自動プレイ・バランスシミュレーション', () => {
   // 難易度の基準: このAIは「弾は避けるが、ビルド構成・先読み・地形利用をしない平均的プレイヤーの下位互換」。
-  // 計測実績（調整完了時点）: 275s / 594s / 275s / 375s / 356s 前後。
   // 人間はこのAIを上回るため、「初回は中盤〜終盤で死に、上達するとクリアできる」VS系の難度カーブに相当する。
+  // 閾値はゲーム時間(5:00)に対する比率: 序盤35% / 平均50% / ベスト80%
 
-  it('どのシードでも3:30より前に死なない（序盤が理不尽でないこと）', () => {
+  it('生存時間の分布が難度カーブの範囲にある', () => {
     const results = [1, 2, 3, 4, 5].map((s) => runSim(s, GAME_DURATION + 30));
     const detail = results.map((r, i) => `seed=${i + 1}: ${r.survivedSec.toFixed(0)}s ${r.state}`).join(' / ');
+    // どのシードでも1:45より前に死なない（序盤が理不尽でないこと）
     for (const r of results) {
-      expect(r.survivedSec, detail).toBeGreaterThanOrEqual(210);
+      expect(r.survivedSec, detail).toBeGreaterThanOrEqual(105);
     }
-    // 平均5:00以上（中盤の壁が高すぎないこと）
+    // 平均2:30以上（中盤の壁が高すぎないこと）
     const mean = results.reduce((a, r) => a + r.survivedSec, 0) / results.length;
-    expect(mean, detail).toBeGreaterThanOrEqual(300);
-    // ベストは8:00以上（上手いプレイならクリア圏内に届くこと）
+    expect(mean, detail).toBeGreaterThanOrEqual(150);
+    // ベストは4:00以上（上手いプレイならクリア圏内に届くこと）
     const best = Math.max(...results.map((r) => r.survivedSec));
-    expect(best, detail).toBeGreaterThanOrEqual(480);
+    expect(best, detail).toBeGreaterThanOrEqual(240);
   }, 180_000);
 
-  it('5:00時点で十分な討伐数と成長が得られている（爽快感の担保）', () => {
-    const r = runSim(1, 300);
-    expect(r.kills).toBeGreaterThan(150);
-    expect(r.level).toBeGreaterThanOrEqual(8);
+  it('折返し(2:30)時点で十分な討伐数と成長が得られている（爽快感の担保）', () => {
+    const r = runSim(1, GAME_DURATION / 2);
+    expect(r.kills).toBeGreaterThan(100);
+    expect(r.level).toBeGreaterThanOrEqual(7);
   }, 30_000);
 
-  it('フルビルドの理論DPSでボスを現実的な時間(90秒以内)に倒せる', () => {
+  it('フルビルドの理論DPSでボスを現実的な時間(60秒以内)に倒せる', () => {
     // 近接フルビルド時の対単体DPSの概算
     const club = WEAPON_STATS.club(5);
     const bone = WEAPON_STATS.bone(5);
@@ -210,6 +211,6 @@ describe('自動プレイ・バランスシミュレーション', () => {
     const dpsSingleTarget =
       (club.dmg / club.cooldown + bone.dmg / bone.cooldown + stomp.dmg / stomp.cooldown) * muscle;
     const timeToKill = ENEMY_DEFS.hero.hp / dpsSingleTarget;
-    expect(timeToKill).toBeLessThan(90);
+    expect(timeToKill).toBeLessThan(60);
   });
 });
