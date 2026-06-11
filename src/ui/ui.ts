@@ -1,4 +1,4 @@
-import { GAME_DURATION, expForLevel } from '../game/config';
+import { GAME_DURATION, RELICS, expForLevel } from '../game/config';
 import type { GameWorld } from '../game/world';
 import { choiceInfo, type UpgradeChoice } from '../game/upgrades';
 import { PROLOGUE_PAGES, epilogueText } from './prologue';
@@ -133,6 +133,18 @@ export class UI {
     for (const [id, lv] of world.weapons) icons.push(`${choiceInfo({ kind: 'weapon', id, nextLevel: lv }).icon}${lv}`);
     for (const [id, lv] of world.passives) icons.push(`${choiceInfo({ kind: 'passive', id, nextLevel: lv }).icon}${lv}`);
     this.skillIcons.textContent = icons.join(' ');
+    el('relic-icons').textContent = [...world.relics].map((id) => RELICS[id].icon).join(' ');
+  }
+
+  /** HUD上部の獲得トースト。legendaryはレリック用の派手な見た目 */
+  showToast(text: string, legendary = false): void {
+    const box = el('toasts');
+    const toast = document.createElement('div');
+    toast.className = legendary ? 'toast legendary' : 'toast';
+    toast.textContent = text;
+    box.appendChild(toast);
+    while (box.children.length > 3) box.removeChild(box.firstChild!);
+    setTimeout(() => toast.remove(), legendary ? 5200 : 3200);
   }
 
   showLevelUp(choices: UpgradeChoice[]): void {
@@ -229,6 +241,7 @@ export class UI {
 /** リザルト用の統計を組み立てる */
 export function collectStats(world: GameWorld, title: string): RunStats {
   const icons: string[] = [];
+  for (const id of world.relics) icons.push(RELICS[id].icon);
   for (const [id] of world.weapons) icons.push(choiceInfo({ kind: 'weapon', id, nextLevel: 1 }).icon);
   for (const [id] of world.passives) icons.push(choiceInfo({ kind: 'passive', id, nextLevel: 1 }).icon);
   return {

@@ -199,6 +199,99 @@ describe('スポーンタイムライン', () => {
   });
 });
 
+describe('宝箱', () => {
+  it('パラディンは確定で金の宝箱をドロップする', () => {
+    const w = new GameWorld(1);
+    // 虹の抽選をスキップするため全レリック所持にする（虹は未所持がある場合のみ）
+    for (const id of ['kanabo', 'belly', 'heart', 'hog'] as const) w.relics.add(id);
+    const paladin = w.spawnEnemy('paladin', { x: 0, z: 30 })!; // 拾わない位置
+    paladin.hp = 1;
+    paladin.x = 0; paladin.z = 30;
+    // 直接ダメージ経路を通す（プールの別敵と区別するためtierを検証）
+    (w as never as { damageEnemy: (e: unknown, d: number, x: number, z: number, k: number) => void })
+      .damageEnemy(paladin, 9999, 0, 1, 0);
+    const chest = w.chests.find((c) => c.active);
+    expect(chest).toBeDefined();
+    expect(chest!.tier).toBe('gold');
+  });
+
+  it('銀の宝箱は所持スキルをLv+1する', () => {
+    const w = new GameWorld(1);
+    w.weapons.set('club', 2);
+    w.spawnChestForTest('silver', 0, 0.5);
+    step(w, 0.1, IDLE); // 接触範囲内なので即開封
+    const clubLv = w.weapons.get('club')!;
+    const passiveLevels = [...w.passives.values()];
+    // club(唯一の所持スキル)が上がる
+    expect(clubLv + passiveLevels.reduce((a, b) => a + b, 0)).toBe(3);
+    expect(w.events.some((e) => e.type === 'chest')).toBe(true);
+  });
+
+  it('木の宝箱は回復と経験値。経験値は時間経過でスケールする', () => {
+    const early = new GameWorld(1);
+    early.hp = 50;
+    early.spawnChestForTest('wood', 0, 0.5);
+    step(early, 0.1, IDLE);
+    expect(early.hp).toBeCloseTo(75, 0);
+    const late = new GameWorld(1);
+    late.time = 240;
+    late.spawnChestForTest('wood', 0, 0.5);
+    step(late, 0.1, IDLE);
+    expect(late.exp).toBeGreaterThan(early.exp);
+  });
+
+  it('虹の宝箱で未所持レリックを獲得し、効果が反映される', () => {
+    const w = new GameWorld(1);
+    const baseAtk = w.attackMul;
+    const baseHp = w.maxHp;
+    const baseSpeed = w.moveSpeed;
+    for (let i = 0; i < 4; i++) {
+      w.spawnChestForTest('rainbow', 0, 0.5);
+      step(w, 0.1, IDLE);
+    }
+    expect(w.relics.size).toBe(4); // 4種すべて獲得（重複しない）
+    expect(w.attackMul).toBeCloseTo(baseAtk * 2.2);
+    expect(w.maxHp).toBeCloseTo(baseHp * 2);
+    expect(w.moveSpeed).toBeCloseTo(baseSpeed * 1.25);
+    expect(w.damageTakenMul).toBeCloseTo(0.65);
+  });
+
+  it('全レリック所持後の虹の宝箱は経験値に変換される', () => {
+    const w = new GameWorld(1);
+    for (const id of ['kanabo', 'belly', 'heart', 'hog'] as const) w.relics.add(id);
+    const expBefore = w.exp;
+    w.spawnChestForTest('rainbow', 0, 0.5);
+    step(w, 0.1, IDLE);
+    expect(w.relics.size).toBe(4);
+    expect(w.exp).toBeGreaterThan(expBefore);
+  });
+
+  it('不滅の鉄腹は毎秒自動回復する', () => {
+    const w = new GameWorld(1);
+    w.relics.add('belly');
+    w.hp = 100;
+    step(w, 2, IDLE);
+    expect(w.hp).toBeGreaterThan(100);
+  });
+
+  it('約1%の確率で虹の宝箱がドロップする（統計検証）', () => {
+    const w = new GameWorld(7);
+    let rainbows = 0;
+    const trials = 4000;
+    for (let i = 0; i < trials; i++) {
+      for (const c of w.chests) c.active = false;
+      w.relics.clear();
+      const e = w.spawnEnemy('trainee', { x: 0, z: 40 })!;
+      (w as never as { damageEnemy: (e: unknown, d: number, x: number, z: number, k: number) => void })
+        .damageEnemy(e, 9999, 0, 1, 0);
+      if (w.chests.some((c) => c.active && c.tier === 'rainbow')) rainbows++;
+    }
+    const rate = rainbows / trials;
+    expect(rate).toBeGreaterThan(0.005);
+    expect(rate).toBeLessThan(0.018);
+  });
+});
+
 describe('決定性', () => {
   it('同じシードと入力なら同じ結果になる', () => {
     const results: Array<[number, number, number, number, number]> = [];

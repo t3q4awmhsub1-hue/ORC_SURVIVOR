@@ -3,8 +3,8 @@ import {
   buildAdventurer, buildArcher, buildHero, buildKnight, buildMage,
   buildOrcRig, buildPaladin, buildTrainee, type OrcRig,
 } from '../assets/characters';
-import { buildMeat, buildPig, buildRock, buildTree } from '../assets/props';
-import { ARENA_RADIUS, ENEMY_CAP, GEM_CAP } from '../game/config';
+import { buildChest, buildMeat, buildPig, buildRock, buildTree } from '../assets/props';
+import { ARENA_RADIUS, CHEST_CAP, ENEMY_CAP, GEM_CAP, type ChestTier } from '../game/config';
 import { mulberry32, range } from '../game/rng';
 import type { GameEvent, GameWorld } from '../game/world';
 import { makeInstanced } from './bake';
@@ -51,6 +51,8 @@ export class GameRenderer {
   private readonly telegraphRing: THREE.Mesh;
 
   private readonly enemyMeshes = new Map<InstancedKind, THREE.InstancedMesh>();
+  private readonly chestMeshes = new Map<ChestTier, THREE.InstancedMesh>();
+  private rainbowMat: THREE.MeshLambertMaterial | null = null;
   private readonly gemMesh: THREE.InstancedMesh;
   private readonly meatMesh: THREE.InstancedMesh;
   private readonly pigMesh: THREE.InstancedMesh;
@@ -150,6 +152,25 @@ export class GameRenderer {
     this.scene.add(this.meatMesh);
     this.pigMesh = makeInstanced(buildPig(), 12);
     this.scene.add(this.pigMesh);
+
+    // 宝箱（tierごとにInstancedMesh。虹は発光マテリアルで色相を回す）
+    const chestDefs: Array<[ChestTier, number, number]> = [
+      ['wood', 0x8a5a2b, 0x5a3a1a],
+      ['silver', 0xcfd6dd, 0x8a939e],
+      ['gold', 0xd9a92f, 0x9a7218],
+      ['rainbow', 0xffffff, 0xffe97a],
+    ];
+    for (const [tier, base, trim] of chestDefs) {
+      const mesh = makeInstanced(buildChest(base, trim), CHEST_CAP);
+      if (tier === 'rainbow') {
+        const m = mesh.material as THREE.MeshLambertMaterial;
+        m.emissive = new THREE.Color(0xff00ff);
+        m.emissiveIntensity = 0.55;
+        this.rainbowMat = m;
+      }
+      this.chestMeshes.set(tier, mesh);
+      this.scene.add(mesh);
+    }
 
     this.projMeshes = {
       bone: makeInstanced(this.buildBoneModel(), 64),
@@ -322,6 +343,16 @@ export class GameRenderer {
         break;
       case 'bossSpawn':
         this.shake = Math.max(this.shake, 0.8);
+        break;
+      case 'chest':
+        this.burst(e.x ?? world.px, 0.7, e.z ?? world.pz, 14,
+          e.kind === 'gold' ? 0xffd34d : e.kind === 'silver' ? 0xdfe6ee : 0xc89a5a);
+        break;
+      case 'relic':
+        this.burst(e.x ?? world.px, 1.0, e.z ?? world.pz, 60, 0xff7af0);
+        this.burst(e.x ?? world.px, 1.2, e.z ?? world.pz, 30, 0x7af0ff);
+        this.beamT = 0;
+        this.shake = Math.max(this.shake, 0.5);
         break;
       case 'bossDash':
         this.shake = Math.max(this.shake, 0.5);
@@ -529,6 +560,27 @@ export class GameRenderer {
     }
     this.meatMesh.count = mi;
     this.meatMesh.instanceMatrix.needsUpdate = true;
+
+    // 宝箱
+    const chestCounts = new Map<ChestTier, number>();
+    for (const c of world.chests) {
+      if (!c.active) continue;
+      const mesh = this.chestMeshes.get(c.tier)!;
+      const idx = chestCounts.get(c.tier) ?? 0;
+      this.dummy.position.set(c.x, 0.06 + Math.abs(Math.sin(this.elapsed * 3 + c.x)) * 0.07, c.z);
+      this.dummy.rotation.set(0, Math.sin(this.elapsed * 1.5 + c.z) * 0.3, 0);
+      this.dummy.scale.setScalar(c.tier === 'rainbow' ? 1.25 : 1);
+      this.dummy.updateMatrix();
+      mesh.setMatrixAt(idx, this.dummy.matrix);
+      chestCounts.set(c.tier, idx + 1);
+    }
+    for (const [tier, mesh] of this.chestMeshes) {
+      mesh.count = chestCounts.get(tier) ?? 0;
+      mesh.instanceMatrix.needsUpdate = true;
+    }
+    if (this.rainbowMat) {
+      this.rainbowMat.emissive.setHSL((this.elapsed * 0.35) % 1, 0.85, 0.55);
+    }
 
     // ブタ
     let pi = 0;

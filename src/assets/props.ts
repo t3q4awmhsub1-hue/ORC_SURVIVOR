@@ -47,6 +47,16 @@ export function buildPig(): THREE.Group {
   return g;
 }
 
+/** 宝箱（tierごとに色違い）。虹はレンダラ側で発光マテリアルを差し替える */
+export function buildChest(base: number, trim: number): THREE.Group {
+  return group(
+    box(0.52, 0.3, 0.38, base, 0, 0.15, 0),       // 箱
+    box(0.54, 0.16, 0.4, base, 0, 0.36, 0),       // ふた
+    box(0.56, 0.05, 0.42, trim, 0, 0.31, 0),      // 縁の帯
+    box(0.1, 0.12, 0.04, trim, 0, 0.3, 0.21),     // 錠前
+  );
+}
+
 /** 地形小物: 木 */
 export function buildTree(): THREE.Group {
   return group(

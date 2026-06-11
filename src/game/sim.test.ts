@@ -184,6 +184,7 @@ describe('自動プレイ・バランスシミュレーション', () => {
   it('生存時間の分布が難度カーブの範囲にある', () => {
     const results = [1, 2, 3, 4, 5].map((s) => runSim(s, GAME_DURATION + 30));
     const detail = results.map((r, i) => `seed=${i + 1}: ${r.survivedSec.toFixed(0)}s ${r.state}`).join(' / ');
+    console.log(`[sim] ${detail}`); // 難度の実測値を常に記録する
     // どのシードでも1:45より前に死なない（序盤が理不尽でないこと）
     for (const r of results) {
       expect(r.survivedSec, detail).toBeGreaterThanOrEqual(105);

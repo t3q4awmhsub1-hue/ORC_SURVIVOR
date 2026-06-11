@@ -12,6 +12,7 @@ export type GameEventType =
   | 'kill' | 'hit' | 'levelup' | 'gem' | 'meat' | 'hurt'
   | 'clubSwing' | 'stomp' | 'roar' | 'boneThrow' | 'pigCharge' | 'minionSummon'
   | 'bossSpawn' | 'bossTelegraph' | 'bossDash' | 'wave'
+  | 'chest' | 'relic'
   | 'win' | 'lose';
 
 export interface GameEvent {
@@ -20,6 +21,7 @@ export interface GameEvent {
   z?: number;
   value?: number;
   kind?: string;
+  text?: string;
 }
 
 export interface Enemy {
@@ -53,6 +55,7 @@ export interface Projectile {
 
 export interface Gem { active: boolean; x: number; z: number; value: number }
 export interface Meat { active: boolean; x: number; z: number }
+export interface Chest { active: boolean; x: number; z: number; tier: C.ChestTier }
 export interface Pig {
   active: boolean; x: number; z: number; vx: number; vz: number;
   dmg: number; knockback: number; radius: number; life: number; hitIds: number[];
@@ -84,6 +87,7 @@ export class GameWorld {
 
   weapons = new Map<C.WeaponKind, number>();
   passives = new Map<C.PassiveKind, number>();
+  readonly relics = new Set<C.RelicId>();
   private weaponCds = new Map<C.WeaponKind, number>();
 
   pendingChoices: UpgradeChoice[] | null = null;
@@ -94,6 +98,7 @@ export class GameWorld {
   readonly projectiles: Projectile[] = [];
   readonly gems: Gem[] = [];
   readonly meats: Meat[] = [];
+  readonly chests: Chest[] = [];
   readonly pigs: Pig[] = [];
   readonly minions: Minion[] = [];
 
@@ -125,6 +130,7 @@ export class GameWorld {
     }
     for (let i = 0; i < C.GEM_CAP; i++) this.gems.push({ active: false, x: 0, z: 0, value: 0 });
     for (let i = 0; i < MEAT_CAP; i++) this.meats.push({ active: false, x: 0, z: 0 });
+    for (let i = 0; i < C.CHEST_CAP; i++) this.chests.push({ active: false, x: 0, z: 0, tier: 'wood' });
     for (let i = 0; i < PIG_CAP; i++) {
       this.pigs.push({ active: false, x: 0, z: 0, vx: 0, vz: 0, dmg: 0, knockback: 0, radius: 0.8, life: 0, hitIds: [] });
     }
@@ -134,16 +140,26 @@ export class GameWorld {
 
   // --- 派生ステータス ------------------------------------------------------
   get maxHp(): number {
-    return C.PLAYER.maxHp * C.PASSIVE_STATS.bulk(this.passives.get('bulk') ?? 0);
+    const relic = this.relics.has('belly') ? C.RELIC_EFFECTS.bellyMaxHpMul : 1;
+    return C.PLAYER.maxHp * C.PASSIVE_STATS.bulk(this.passives.get('bulk') ?? 0) * relic;
   }
   get attackMul(): number {
-    return C.PASSIVE_STATS.muscle(this.passives.get('muscle') ?? 0);
+    const relic = this.relics.has('kanabo') ? C.RELIC_EFFECTS.kanaboAttackMul : 1;
+    return C.PASSIVE_STATS.muscle(this.passives.get('muscle') ?? 0) * relic;
   }
   get damageTakenMul(): number {
-    return C.PASSIVE_STATS.skin(this.passives.get('skin') ?? 0);
+    const relic = this.relics.has('heart') ? C.RELIC_EFFECTS.heartDamageTakenMul : 1;
+    return C.PASSIVE_STATS.skin(this.passives.get('skin') ?? 0) * relic;
   }
   get moveSpeed(): number {
-    return C.PLAYER.speed * C.PASSIVE_STATS.trotters(this.passives.get('trotters') ?? 0);
+    const relic = this.relics.has('hog') ? C.RELIC_EFFECTS.hogSpeedMul : 1;
+    return C.PLAYER.speed * C.PASSIVE_STATS.trotters(this.passives.get('trotters') ?? 0) * relic;
+  }
+  private get cooldownMul(): number {
+    return this.relics.has('hog') ? C.RELIC_EFFECTS.hogCooldownMul : 1;
+  }
+  private get hurtCooldown(): number {
+    return C.PLAYER.hurtCooldown * (this.relics.has('heart') ? C.RELIC_EFFECTS.heartHurtCooldownMul : 1);
   }
   get magnetRadius(): number {
     return C.PLAYER.magnet * C.PASSIVE_STATS.nose(this.passives.get('nose') ?? 0);
@@ -299,6 +315,10 @@ export class GameWorld {
       }
     }
     if (this.hurtCd > 0) this.hurtCd -= dt;
+    // 不滅の鉄腹: 自動回復
+    if (this.relics.has('belly') && this.hp > 0) {
+      this.hp = Math.min(this.maxHp, this.hp + this.maxHp * C.RELIC_EFFECTS.bellyRegenRatioPerSec * dt);
+    }
   }
 
   private nearestEnemy(x: number, z: number, maxDist: number): number {
@@ -335,7 +355,7 @@ export class GameWorld {
         case 'minion': break; // 召喚はupdateMinionsで管理
       }
       const stats = C.WEAPON_STATS[kind](lv) as { cooldown?: number };
-      this.weaponCds.set(kind, stats.cooldown ?? 1);
+      this.weaponCds.set(kind, (stats.cooldown ?? 1) * this.cooldownMul);
     }
   }
 
@@ -368,10 +388,112 @@ export class GameWorld {
         m.z = e.z;
       }
     }
+    this.rollChestDrop(e);
     if (e.kind === 'hero') {
       this.state = 'won';
       this.emit({ type: 'win' });
     }
+  }
+
+  /** 宝箱ドロップ判定: 全敵共通1%の虹（未所持レリックがある場合）→ 敵種別の通常宝箱 */
+  private rollChestDrop(e: Enemy): void {
+    const hasUnownedRelic = this.relics.size < Object.keys(C.RELICS).length;
+    if (e.kind !== 'hero' && hasUnownedRelic && this.rng() < C.LEGENDARY_CHANCE) {
+      this.spawnChest(e.x, e.z, 'rainbow');
+      return;
+    }
+    const drop = C.CHEST_DROPS[e.kind];
+    if (drop.chance > 0 && this.rng() < drop.chance) {
+      this.spawnChest(e.x, e.z, weightedPick(this.rng, drop.tiers));
+    }
+  }
+
+  private spawnChest(x: number, z: number, tier: C.ChestTier): void {
+    const c = this.chests.find((c) => !c.active);
+    if (!c) return; // 上限超過は諦める（取り切れていない合図）
+    c.active = true;
+    c.x = x;
+    c.z = z;
+    c.tier = tier;
+  }
+
+  /** 宝箱の開封。報酬のテキストはイベントでUIへ渡す */
+  private openChest(tier: C.ChestTier, x: number, z: number): void {
+    switch (tier) {
+      case 'wood': {
+        const xp = C.chestXp(this.time);
+        this.exp += xp;
+        this.hp = Math.min(this.maxHp, this.hp + C.CHEST_REWARDS.wood.heal);
+        this.emit({ type: 'chest', kind: tier, x, z, text: `木の宝箱: HP回復 + EXP${xp}` });
+        break;
+      }
+      case 'silver': {
+        const name = this.upgradeRandomSkill();
+        this.emit({
+          type: 'chest', kind: tier, x, z,
+          text: name ? `銀の宝箱: ${name} 強化！` : `銀の宝箱: EXP${C.CHEST_REWARDS.silver.xpFallback}`,
+        });
+        if (!name) this.exp += C.CHEST_REWARDS.silver.xpFallback;
+        break;
+      }
+      case 'gold': {
+        const names: string[] = [];
+        for (let i = 0; i < C.CHEST_REWARDS.gold.upgrades; i++) {
+          const name = this.upgradeRandomSkill();
+          if (name) names.push(name);
+        }
+        if (names.length === 0) this.exp += C.CHEST_REWARDS.gold.xpFallback;
+        this.hp = Math.min(this.maxHp, this.hp + this.maxHp * C.CHEST_REWARDS.gold.healRatio);
+        // 同じスキルが複数回強化された場合は「◯◯ 2段階強化」とまとめる
+        const counts = new Map<string, number>();
+        for (const n of names) counts.set(n, (counts.get(n) ?? 0) + 1);
+        const summary = [...counts.entries()]
+          .map(([n, c]) => (c > 1 ? `${n} ${c}段階強化` : `${n} 強化`))
+          .join('・');
+        this.emit({
+          type: 'chest', kind: tier, x, z,
+          text: names.length > 0 ? `金の宝箱: ${summary}！` : `金の宝箱: 大回復 + EXP${C.CHEST_REWARDS.gold.xpFallback}`,
+        });
+        break;
+      }
+      case 'rainbow': {
+        const unowned = (Object.keys(C.RELICS) as C.RelicId[]).filter((r) => !this.relics.has(r));
+        if (unowned.length === 0) {
+          this.exp += C.CHEST_REWARDS.gold.xpFallback;
+          this.emit({ type: 'chest', kind: 'gold', x, z, text: `輝く宝箱: EXP${C.CHEST_REWARDS.gold.xpFallback}` });
+          return;
+        }
+        const id = unowned[Math.floor(this.rng() * unowned.length)];
+        this.relics.add(id);
+        if (id === 'belly') this.hp = Math.min(this.maxHp, this.hp * 2); // 最大HP倍増分を反映
+        const info = C.RELICS[id];
+        this.emit({ type: 'relic', kind: id, x, z, text: `${info.icon} ${info.name}！ ${info.desc}` });
+        break;
+      }
+    }
+  }
+
+  /** 所持スキルからランダムに1つLvを上げる。対象がなければnull */
+  private upgradeRandomSkill(): string | null {
+    const candidates: Array<{ kind: 'weapon' | 'passive'; id: C.WeaponKind | C.PassiveKind }> = [];
+    for (const [id, lv] of this.weapons) {
+      if (lv < C.MAX_SKILL_LEVEL) candidates.push({ kind: 'weapon', id });
+    }
+    for (const [id, lv] of this.passives) {
+      if (lv < C.MAX_SKILL_LEVEL) candidates.push({ kind: 'passive', id });
+    }
+    if (candidates.length === 0) return null;
+    const pick = candidates[Math.floor(this.rng() * candidates.length)];
+    if (pick.kind === 'weapon') {
+      const id = pick.id as C.WeaponKind;
+      this.weapons.set(id, (this.weapons.get(id) ?? 0) + 1);
+      return C.WEAPON_INFO[id].name;
+    }
+    const id = pick.id as C.PassiveKind;
+    const prevMaxHp = this.maxHp;
+    this.passives.set(id, (this.passives.get(id) ?? 0) + 1);
+    if (id === 'bulk') this.hp += this.maxHp - prevMaxHp;
+    return C.PASSIVE_INFO[id].name;
   }
 
   private dropGem(x: number, z: number, value: number): void {
@@ -688,7 +810,7 @@ export class GameWorld {
 
   private hurtPlayer(dmg: number): void {
     this.hp -= dmg * this.damageTakenMul;
-    this.hurtCd = C.PLAYER.hurtCooldown;
+    this.hurtCd = this.hurtCooldown;
     this.emit({ type: 'hurt', value: Math.round(dmg * this.damageTakenMul) });
   }
 
@@ -804,6 +926,15 @@ export class GameWorld {
         this.emit({ type: 'meat', value: this.meatHeal });
       }
     }
+    for (const c of this.chests) {
+      if (!c.active) continue;
+      const dx = this.px - c.x;
+      const dz = this.pz - c.z;
+      if (dx * dx + dz * dz < 0.95 * 0.95) {
+        c.active = false;
+        this.openChest(c.tier, c.x, c.z);
+      }
+    }
   }
 
   // --- レベルアップ ----------------------------------------------------------
@@ -839,6 +970,11 @@ export class GameWorld {
     this.pendingChoices = this.pendingLevelUps > 0
       ? generateChoices(this.rng, this.weapons, this.passives)
       : null;
+  }
+
+  /** テスト・デバッグ用: 任意の宝箱を任意の位置に出す */
+  spawnChestForTest(tier: C.ChestTier, x: number, z: number): void {
+    this.spawnChest(x, z, tier);
   }
 
   /** 負荷試験・デバッグ用 */

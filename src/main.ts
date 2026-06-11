@@ -244,6 +244,14 @@ function processEvents(): void {
       case 'boneThrow': sound.bone(); break;
       case 'pigCharge': sound.pig(); break;
       case 'minionSummon': sound.summon(); break;
+      case 'chest':
+        sound.chest(e.kind ?? 'wood');
+        if (e.text) ui.showToast(`🎁 ${e.text}`);
+        break;
+      case 'relic':
+        sound.relic();
+        if (e.text) ui.showToast(`✨超激レア✨ ${e.text}`, true);
+        break;
       case 'bossSpawn':
         sound.bossSpawn();
         ui.bossWarning();

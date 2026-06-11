@@ -48,21 +48,21 @@ export interface EnemyDef {
 }
 
 export const ENEMY_DEFS: Record<EnemyKind, EnemyDef> = {
-  trainee:    { hp: 10,  speed: 1.7, dmg: 5,  score: 1,   xp: 1,  radius: 0.35, kbResist: 0 },
-  adventurer: { hp: 22,  speed: 2.2, dmg: 8,  score: 2,   xp: 2,  radius: 0.35, kbResist: 0 },
-  archer:     { hp: 20,  speed: 2.2, dmg: 5,  score: 5,   xp: 4,  radius: 0.35, kbResist: 0,
-                ranged: { range: 8, cooldown: 3.0, projSpeed: 7.5, dmg: 5, projKind: 'arrow' } },
-  mage:       { hp: 30,  speed: 1.6, dmg: 5,  score: 8,   xp: 6,  radius: 0.35, kbResist: 0,
-                ranged: { range: 10, cooldown: 4.2, projSpeed: 5.5, dmg: 11, projKind: 'bolt' } },
-  knight:     { hp: 90,  speed: 1.4, dmg: 12, score: 10,  xp: 8,  radius: 0.45, kbResist: 0.8 },
-  paladin:    { hp: 320, speed: 1.9, dmg: 18, score: 20,  xp: 25, radius: 0.55, kbResist: 0.9,
-                auraSpeedMul: 1.45, auraRadius: 6 },
-  hero:       { hp: 1800, speed: 3.1, dmg: 22, score: 500, xp: 0, radius: 0.65, kbResist: 1 },
+  trainee:    { hp: 10,  speed: 1.85, dmg: 7,  score: 1,   xp: 1,  radius: 0.35, kbResist: 0 },
+  adventurer: { hp: 26,  speed: 2.35, dmg: 10, score: 2,   xp: 2,  radius: 0.35, kbResist: 0 },
+  archer:     { hp: 24,  speed: 2.25, dmg: 5,  score: 5,   xp: 4,  radius: 0.35, kbResist: 0,
+                ranged: { range: 8, cooldown: 2.7, projSpeed: 7.8, dmg: 7, projKind: 'arrow' } },
+  mage:       { hp: 34,  speed: 1.65, dmg: 5,  score: 8,   xp: 6,  radius: 0.35, kbResist: 0,
+                ranged: { range: 10, cooldown: 3.6, projSpeed: 5.8, dmg: 13, projKind: 'bolt' } },
+  knight:     { hp: 110, speed: 1.5, dmg: 16, score: 10,  xp: 8,  radius: 0.45, kbResist: 0.8 },
+  paladin:    { hp: 400, speed: 2.0, dmg: 22, score: 20,  xp: 25, radius: 0.55, kbResist: 0.9,
+                auraSpeedMul: 1.55, auraRadius: 7 },
+  hero:       { hp: 2600, speed: 3.3, dmg: 28, score: 500, xp: 0, radius: 0.65, kbResist: 1 },
 };
 
-/** 経過時間による敵HPスケール（5分で2.5倍） */
+/** 経過時間による敵HPスケール（5分で3倍） */
 export function enemyHpScale(timeSec: number): number {
-  return 1 + (timeSec / 60) * 0.3;
+  return 1 + (timeSec / 60) * 0.4;
 }
 
 export function expForLevel(level: number): number {
@@ -132,6 +132,61 @@ export const BASE_MEAT_DROP = 0.02;
 export const BASE_MEAT_HEAL = 25;
 
 // ---------------------------------------------------------------------------
+// 宝箱
+// ---------------------------------------------------------------------------
+export type ChestTier = 'wood' | 'silver' | 'gold' | 'rainbow';
+export type RelicId = 'kanabo' | 'belly' | 'heart' | 'hog';
+
+/** 全敵共通: 超激レア（虹の宝箱）のドロップ率 */
+export const LEGENDARY_CHANCE = 0.01;
+export const CHEST_CAP = 24;
+
+export interface ChestDropDef {
+  chance: number;
+  tiers: Partial<Record<'wood' | 'silver' | 'gold', number>>;
+}
+
+/** 敵が強いほどドロップ率が高く、中身も豪華（パラディンは確定で金） */
+export const CHEST_DROPS: Record<EnemyKind, ChestDropDef> = {
+  trainee:    { chance: 0.004, tiers: { wood: 1 } },
+  adventurer: { chance: 0.008, tiers: { wood: 0.9, silver: 0.1 } },
+  archer:     { chance: 0.012, tiers: { wood: 0.7, silver: 0.3 } },
+  mage:       { chance: 0.02,  tiers: { wood: 0.5, silver: 0.5 } },
+  knight:     { chance: 0.05,  tiers: { silver: 0.8, gold: 0.2 } },
+  paladin:    { chance: 1,     tiers: { gold: 1 } },
+  hero:       { chance: 0,     tiers: {} },
+};
+
+/** 宝箱の中身（時間経過＝敵の強さに応じて経験値量もスケールする） */
+export const CHEST_REWARDS = {
+  wood:   { heal: 25, xpBase: 8 },
+  silver: { upgrades: 1, xpFallback: 30 },
+  gold:   { upgrades: 2, healRatio: 0.4, xpFallback: 60 },
+} as const;
+
+export function chestXp(timeSec: number): number {
+  return Math.round(CHEST_REWARDS.wood.xpBase * enemyHpScale(timeSec));
+}
+
+/** 超激レア固有アイテム（1ランで各1個まで） */
+export const RELICS: Record<RelicId, SkillInfo> = {
+  kanabo: { name: '魔王の金棒',   desc: '全攻撃力が2.2倍になる',                icon: '👹' },
+  belly:  { name: '不滅の鉄腹',   desc: '最大HP2倍＋毎秒HPが回復し続ける',       icon: '🪨' },
+  heart:  { name: '勇者の心臓',   desc: '被ダメージ-35%＋被弾後の無敵時間2倍',   icon: '❤️‍🔥' },
+  hog:    { name: '豚神の加護',   desc: '全武器のクールダウン40%短縮＋移動+25%', icon: '🐷' },
+};
+
+export const RELIC_EFFECTS = {
+  kanaboAttackMul: 2.2,
+  bellyMaxHpMul: 2,
+  bellyRegenRatioPerSec: 0.01, // 最大HPの1%/秒
+  heartDamageTakenMul: 0.65,
+  heartHurtCooldownMul: 2,
+  hogCooldownMul: 0.6,
+  hogSpeedMul: 1.25,
+} as const;
+
+// ---------------------------------------------------------------------------
 // スキルのメタ情報（UI表示用）
 // ---------------------------------------------------------------------------
 export interface SkillInfo {
@@ -168,13 +223,13 @@ export interface SpawnPhase {
 }
 
 export const SPAWN_PHASES: SpawnPhase[] = [
-  { from: 0,   rate: 1.0, weights: { trainee: 1 } },
-  { from: 30,  rate: 1.4, weights: { trainee: 0.7, adventurer: 0.3 } },
-  { from: 60,  rate: 1.8, weights: { trainee: 0.55, adventurer: 0.3, archer: 0.15 } },
-  { from: 120, rate: 2.2, weights: { trainee: 0.4, adventurer: 0.3, archer: 0.15, mage: 0.15 } },
-  { from: 150, rate: 2.6, weights: { trainee: 0.28, adventurer: 0.3, archer: 0.15, mage: 0.12, knight: 0.15 } },
-  { from: 225, rate: 3.2, weights: { trainee: 0.15, adventurer: 0.33, archer: 0.18, mage: 0.14, knight: 0.2 } },
-  { from: 270, rate: 3.6, weights: { adventurer: 0.35, archer: 0.2, mage: 0.15, knight: 0.3 } },
+  { from: 0,   rate: 1.4, weights: { trainee: 1 } },
+  { from: 30,  rate: 2.0, weights: { trainee: 0.7, adventurer: 0.3 } },
+  { from: 60,  rate: 2.6, weights: { trainee: 0.55, adventurer: 0.3, archer: 0.15 } },
+  { from: 120, rate: 3.2, weights: { trainee: 0.4, adventurer: 0.3, archer: 0.15, mage: 0.15 } },
+  { from: 150, rate: 3.8, weights: { trainee: 0.28, adventurer: 0.3, archer: 0.15, mage: 0.12, knight: 0.15 } },
+  { from: 225, rate: 4.6, weights: { trainee: 0.15, adventurer: 0.33, archer: 0.18, mage: 0.14, knight: 0.2 } },
+  { from: 270, rate: 5.2, weights: { adventurer: 0.35, archer: 0.2, mage: 0.15, knight: 0.3 } },
 ];
 
 export interface SpawnWave {
@@ -185,9 +240,9 @@ export interface SpawnWave {
 }
 
 export const SPAWN_WAVES: SpawnWave[] = [
-  { at: 90,  spawns: { trainee: 40 }, ring: true },
-  { at: 180, spawns: { paladin: 1, adventurer: 14 } },
-  { at: 270, spawns: { paladin: 2, knight: 8 } },
+  { at: 90,  spawns: { trainee: 50 }, ring: true },
+  { at: 180, spawns: { paladin: 1, adventurer: 18 } },
+  { at: 270, spawns: { paladin: 3, knight: 10 } },
 ];
 
 export function phaseAt(timeSec: number): SpawnPhase {

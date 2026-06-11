@@ -15,9 +15,9 @@ describe('expForLevel', () => {
 });
 
 describe('enemyHpScale', () => {
-  it('開始時は1倍、5分（ゲーム終了時刻）で2.5倍', () => {
+  it('開始時は1倍、5分（ゲーム終了時刻）で3倍', () => {
     expect(enemyHpScale(0)).toBe(1);
-    expect(enemyHpScale(GAME_DURATION)).toBeCloseTo(2.5);
+    expect(enemyHpScale(GAME_DURATION)).toBeCloseTo(3);
   });
 });
 
