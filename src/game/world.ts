@@ -126,11 +126,15 @@ export class GameWorld {
   private readonly queryOut: number[] = [];
 
   readonly stage: C.StageId;
+  readonly character: C.CharacterId;
   private readonly stageDef: C.StageDef;
+  private readonly charDef: C.CharacterDef;
 
-  constructor(seed = 1, stage: C.StageId = 'grass') {
+  constructor(seed = 1, stage: C.StageId = 'grass', character: C.CharacterId = 'warrior') {
     this.stage = stage;
+    this.character = character;
     this.stageDef = C.STAGES[stage];
+    this.charDef = C.CHARACTERS[character];
     this.rng = mulberry32(seed);
     for (let i = 0; i < C.ENEMY_CAP; i++) {
       this.enemies.push({
@@ -150,14 +154,15 @@ export class GameWorld {
     for (let i = 0; i < PIG_CAP; i++) {
       this.pigs.push({ active: false, x: 0, z: 0, vx: 0, vz: 0, dmg: 0, knockback: 0, radius: 0.8, life: 0, hitIds: [] });
     }
-    this.weapons.set('club', 1);
-    this.weaponCds.set('club', 0.5);
+    this.weapons.set(this.charDef.startWeapon, 1);
+    this.weaponCds.set(this.charDef.startWeapon, 0.5);
+    this.hp = this.maxHp;
   }
 
   // --- 派生ステータス ------------------------------------------------------
   get maxHp(): number {
     const relic = this.relics.has('belly') ? C.RELIC_EFFECTS.bellyMaxHpMul : 1;
-    return C.PLAYER.maxHp * C.PASSIVE_STATS.bulk(this.passives.get('bulk') ?? 0) * relic;
+    return C.PLAYER.maxHp * this.charDef.hpMul * C.PASSIVE_STATS.bulk(this.passives.get('bulk') ?? 0) * relic;
   }
   get attackMul(): number {
     const relic = this.relics.has('kanabo') ? C.RELIC_EFFECTS.kanaboAttackMul : 1;
@@ -169,7 +174,7 @@ export class GameWorld {
   }
   get moveSpeed(): number {
     const relic = this.relics.has('hog') ? C.RELIC_EFFECTS.hogSpeedMul : 1;
-    return C.PLAYER.speed * C.PASSIVE_STATS.trotters(this.passives.get('trotters') ?? 0) * relic;
+    return C.PLAYER.speed * this.charDef.speedMul * C.PASSIVE_STATS.trotters(this.passives.get('trotters') ?? 0) * relic;
   }
   private get cooldownMul(): number {
     return this.relics.has('hog') ? C.RELIC_EFFECTS.hogCooldownMul : 1;

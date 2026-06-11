@@ -71,6 +71,35 @@ export const MAX_WEAPON_SLOTS = 4;
 export const MAX_PASSIVE_SLOTS = 4;
 export const MAX_SKILL_LEVEL = 5;
 
+// ---------------------------------------------------------------------------
+// プレイアブルキャラクター（初期武器・補正・見た目が異なる）
+// ---------------------------------------------------------------------------
+export type CharacterId = 'warrior' | 'shaman' | 'chief';
+
+export interface CharacterDef {
+  name: string;
+  icon: string;
+  desc: string;
+  startWeapon: WeaponKind;
+  hpMul: number;
+  speedMul: number;
+}
+
+export const CHARACTERS: Record<CharacterId, CharacterDef> = {
+  warrior: {
+    name: '戦士オーク', icon: '🏏',
+    desc: '棍棒で薙ぎ払う基本形', startWeapon: 'club', hpMul: 1, speedMul: 1,
+  },
+  shaman: {
+    name: 'シャーマンオーク', icon: '🦴',
+    desc: '骨投げで戦う。素早いが脆い', startWeapon: 'bone', hpMul: 0.8, speedMul: 1.12,
+  },
+  chief: {
+    name: '族長オーク', icon: '🪓',
+    desc: '子分と戦う。硬いが遅い', startWeapon: 'minion', hpMul: 1.25, speedMul: 0.92,
+  },
+};
+
 export const PLAYER = {
   maxHp: 120,
   speed: 5.0,

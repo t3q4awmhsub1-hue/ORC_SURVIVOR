@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {
   buildAdventurer, buildArcher, buildHero, buildKnight, buildMage,
-  buildOrcRig, buildPaladin, buildTrainee, type OrcRig,
+  buildOrcRig, buildPaladin, buildTrainee, type OrcRig, type OrcVariant,
 } from '../assets/characters';
 import { buildChest, buildMeat, buildPig, buildRock, buildTree } from '../assets/props';
 import { ARENA_RADIUS, CHEST_CAP, ENEMY_CAP, GEM_CAP, STAGES, type ChestTier, type StageId } from '../game/config';
@@ -51,7 +51,7 @@ export class GameRenderer {
   private rockMesh!: THREE.InstancedMesh;
   private grassMesh!: THREE.InstancedMesh;
   private mountainMat!: THREE.MeshLambertMaterial;
-  private readonly playerRig: OrcRig;
+  private playerRig: OrcRig;
   private playerClub: THREE.Object3D | null = null;
   private readonly minionRigs: OrcRig[] = [];
   private bossModel: THREE.Group | null = null;
@@ -323,6 +323,14 @@ export class GameRenderer {
     tex.wrapT = THREE.RepeatWrapping;
     tex.repeat.set(10, 10);
     return tex;
+  }
+
+  /** プレイヤーの見た目をキャラクターに合わせて差し替える */
+  setCharacter(variant: OrcVariant): void {
+    this.scene.remove(this.playerRig.root);
+    this.playerRig = buildOrcRig(variant);
+    this.playerClub = this.playerRig.root.getObjectByName('club') ?? null;
+    this.scene.add(this.playerRig.root);
   }
 
   /** ステージの配色テーマを適用する */

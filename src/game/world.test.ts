@@ -397,6 +397,30 @@ describe('ステージ難易度', () => {
   });
 });
 
+describe('プレイアブルキャラクター', () => {
+  it('シャーマンは骨投げ開始・HP80%・移動112%', () => {
+    const w = new GameWorld(1, 'grass', 'shaman');
+    expect(w.weapons.has('bone')).toBe(true);
+    expect(w.weapons.has('club')).toBe(false);
+    expect(w.maxHp).toBeCloseTo(PLAYER.maxHp * 0.8);
+    expect(w.hp).toBeCloseTo(w.maxHp); // 初期HPは補正後の最大値
+    expect(w.moveSpeed).toBeCloseTo(PLAYER.speed * 1.12);
+  });
+
+  it('族長は仲間召喚開始で、子分が湧いて戦う', () => {
+    const w = new GameWorld(1, 'grass', 'chief');
+    expect(w.weapons.has('minion')).toBe(true);
+    step(w, 0.5, IDLE);
+    expect(w.minions.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('デフォルトは戦士（既存挙動と互換）', () => {
+    const w = new GameWorld(1);
+    expect(w.character).toBe('warrior');
+    expect(w.weapons.has('club')).toBe(true);
+  });
+});
+
 describe('決定性', () => {
   it('同じシードと入力なら同じ結果になる', () => {
     const results: Array<[number, number, number, number, number]> = [];

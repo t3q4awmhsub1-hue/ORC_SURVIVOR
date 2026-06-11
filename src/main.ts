@@ -1,4 +1,4 @@
-import { GAME_DURATION, STAGES, titleFor, type StageId } from './game/config';
+import { CHARACTERS, GAME_DURATION, STAGES, titleFor, type CharacterId, type StageId } from './game/config';
 import { GameWorld } from './game/world';
 import { GameRenderer } from './render/renderer';
 import { PrologueScenes } from './render/prologueScenes';
@@ -24,6 +24,23 @@ document.addEventListener('touchstart', () => sound.ensure(), { once: true });
 let state: AppState = 'title';
 let world = new GameWorld(1);
 joystick.enabled = () => state === 'playing';
+
+// キャラクター選択（localStorageに保持。タイトル背景の3Dモデルも即時切替）
+const CHAR_KEY = 'orc-survivor-character';
+let selectedChar = (localStorage.getItem(CHAR_KEY) ?? 'warrior') as CharacterId;
+if (!CHARACTERS[selectedChar]) selectedChar = 'warrior';
+renderer.setCharacter(selectedChar);
+for (const btn of document.querySelectorAll<HTMLButtonElement>('.char')) {
+  btn.classList.toggle('on', btn.dataset.char === selectedChar);
+  btn.addEventListener('click', () => {
+    selectedChar = btn.dataset.char as CharacterId;
+    localStorage.setItem(CHAR_KEY, selectedChar);
+    for (const b of document.querySelectorAll('.char')) b.classList.toggle('on', b === btn);
+    renderer.setCharacter(selectedChar);
+    sound.ensure();
+    sound.summon();
+  });
+}
 
 // ステージ選択（localStorageに保持。タイトル背景も即時プレビュー）
 const STAGE_KEY = 'orc-survivor-stage';
@@ -239,8 +256,9 @@ function startRun(): void {
   const seed = params.has('seed')
     ? Number(params.get('seed'))
     : (Math.random() * 0xffffffff) >>> 0;
-  world = new GameWorld(seed, selectedStage);
+  world = new GameWorld(seed, selectedStage, selectedChar);
   renderer.setStage(selectedStage);
+  renderer.setCharacter(selectedChar);
   if (params.has('stress')) {
     world.debugSpawn('trainee', Math.min(300, Number(params.get('stress')) || 300));
   }

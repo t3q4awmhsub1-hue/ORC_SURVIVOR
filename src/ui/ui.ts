@@ -1,4 +1,4 @@
-import { EVOLUTIONS, GAME_DURATION, RELICS, STAGES, expForLevel } from '../game/config';
+import { CHARACTERS, EVOLUTIONS, GAME_DURATION, RELICS, STAGES, expForLevel } from '../game/config';
 import type { GameWorld } from '../game/world';
 import { choiceInfo, type UpgradeChoice } from '../game/upgrades';
 import { PROLOGUE_PAGES, epilogueText } from './prologue';
@@ -266,6 +266,7 @@ export function collectStats(world: GameWorld, title: string): RunStats {
     icons.push(world.evolved.has(id) ? EVOLUTIONS[id].icon : choiceInfo({ kind: 'weapon', id, nextLevel: 1 }).icon);
   }
   for (const [id] of world.passives) icons.push(choiceInfo({ kind: 'passive', id, nextLevel: 1 }).icon);
+  icons.unshift(CHARACTERS[world.character].icon);
   const stageDef = STAGES[world.stage];
   return {
     won: world.state === 'won',

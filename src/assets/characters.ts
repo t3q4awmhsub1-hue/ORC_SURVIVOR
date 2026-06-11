@@ -155,16 +155,20 @@ export interface OrcRig {
   armR: THREE.Group;    // 棍棒を持つ腕
 }
 
-export function buildOrcRig(): OrcRig {
+/** プレイアブルオークの見た目バリエーション */
+export type OrcVariant = 'warrior' | 'shaman' | 'chief';
+
+export function buildOrcRig(variant: OrcVariant = 'warrior'): OrcRig {
   const root = new THREE.Group();
+  const loincloth = variant === 'shaman' ? 0x6a4a8a : COLORS.woodLight;
 
   // 短く太い脚
   root.add(box(0.28, 0.5, 0.32, COLORS.orcSkin, -0.23, 0.25, 0));
   root.add(box(0.28, 0.5, 0.32, COLORS.orcSkin, 0.23, 0.25, 0));
   // 腰布とスカルバックルのベルト
-  root.add(box(0.62, 0.28, 0.46, COLORS.woodLight, 0, 0.56, 0));
+  root.add(box(0.62, 0.28, 0.46, loincloth, 0, 0.56, 0));
   root.add(box(0.66, 0.09, 0.5, 0x3a2a18, 0, 0.66, 0));
-  root.add(box(0.14, 0.12, 0.06, COLORS.tuskWhite, 0, 0.66, 0.26)); // スカルバックル
+  root.add(box(0.14, 0.12, 0.06, variant === 'chief' ? COLORS.gold : COLORS.tuskWhite, 0, 0.66, 0.26));
   root.add(box(0.04, 0.05, 0.07, 0x1c1c24, -0.03, 0.665, 0.27));
   root.add(box(0.04, 0.05, 0.07, 0x1c1c24, 0.03, 0.665, 0.27));
 
@@ -176,11 +180,29 @@ export function buildOrcRig(): OrcRig {
 
   upper.add(box(0.95, 0.7, 0.55, COLORS.orcSkin, 0, 0.38, 0));
   upper.add(box(0.99, 0.22, 0.59, COLORS.orcSkinDark, 0, 0.62, 0)); // 肩まわりの影色
-  // 左肩の鉄肩当て（歴戦感）
-  upper.add(box(0.4, 0.16, 0.45, 0x5a6570, -0.5, 0.74, 0));
-  upper.add(box(0.36, 0.1, 0.41, 0x6e7a86, -0.5, 0.84, 0));
-  const pauldronSpike = cone(0.07, 0.22, 0x8a939e, -0.5, 0.97, 0, 5);
-  upper.add(pauldronSpike);
+
+  if (variant === 'warrior') {
+    // 左肩の鉄肩当て（歴戦感）
+    upper.add(box(0.4, 0.16, 0.45, 0x5a6570, -0.5, 0.74, 0));
+    upper.add(box(0.36, 0.1, 0.41, 0x6e7a86, -0.5, 0.84, 0));
+    upper.add(cone(0.07, 0.22, 0x8a939e, -0.5, 0.97, 0, 5));
+  } else if (variant === 'shaman') {
+    // 骨の首飾り
+    for (const [x, y] of [[-0.22, 0.6], [-0.08, 0.55], [0.08, 0.55], [0.22, 0.6]] as const) {
+      const fang = cone(0.045, 0.16, COLORS.tuskWhite, x, y, 0.3, 4);
+      fang.rotation.x = Math.PI;
+      upper.add(fang);
+    }
+  } else {
+    // 族長: 両肩当て + 赤マント
+    for (const sx of [-1, 1] as const) {
+      upper.add(box(0.4, 0.16, 0.45, 0x5a6570, sx * 0.5, 0.74, 0));
+      upper.add(cone(0.07, 0.22, 0x8a939e, sx * 0.5, 0.97, 0, 5));
+    }
+    const cape = box(0.85, 1.05, 0.05, 0x9a2b1f, 0, 0.05, -0.38);
+    cape.rotation.x = -0.08;
+    upper.add(cape);
+  }
 
   // 頭
   const headPivot = new THREE.Group();
@@ -210,6 +232,17 @@ export function buildOrcRig(): OrcRig {
     brow.rotation.z = sx * -0.35;
     headPivot.add(brow);
   }
+  if (variant === 'shaman') {
+    // 白塗りのウォーペイント（額の縦線）
+    headPivot.add(box(0.06, 0.18, 0.02, COLORS.tuskWhite, 0, 0.42, 0.26));
+  } else if (variant === 'chief') {
+    // 族長の角飾り
+    for (const sx of [-1, 1] as const) {
+      const horn = cone(0.08, 0.34, COLORS.tuskWhite, sx * 0.26, 0.55, 0, 5);
+      horn.rotation.z = sx * -0.5;
+      headPivot.add(horn);
+    }
+  }
 
   // 太い腕
   const mkArm = (side: 1 | -1) => {
@@ -223,14 +256,41 @@ export function buildOrcRig(): OrcRig {
   };
   const armL = mkArm(-1);
   const armR = mkArm(1);
-  armR.rotation.x = -0.45;
 
-  // 棍棒（進化演出でスケールするため名前を付けておく）
-  const club = buildClub(1.1);
-  club.name = 'club';
-  club.position.set(0, -0.72, 0.05);
-  club.rotation.x = 0.45;
-  armR.add(club);
+  if (variant === 'warrior') {
+    armR.rotation.x = -0.45;
+    // 棍棒（進化演出でスケールするため名前を付けておく）
+    const club = buildClub(1.1);
+    club.name = 'club';
+    club.position.set(0, -0.72, 0.05);
+    club.rotation.x = 0.45;
+    armR.add(club);
+  } else if (variant === 'shaman') {
+    armR.rotation.x = -0.3;
+    // 骨の杖（頭骨付き）
+    const staff = group(
+      cyl(0.035, 0.045, 1.25, 0x8a7a5e, 0, 0.2, 0, 6),
+      box(0.16, 0.14, 0.14, COLORS.tuskWhite, 0, 0.9, 0),
+      cone(0.04, 0.12, COLORS.tuskWhite, -0.08, 1.0, 0, 4),
+      cone(0.04, 0.12, COLORS.tuskWhite, 0.08, 1.0, 0, 4),
+    );
+    staff.name = 'club';
+    staff.position.set(0, -0.72, 0.05);
+    staff.rotation.x = 0.3;
+    armR.add(staff);
+  } else {
+    armR.rotation.x = -0.45;
+    // 族長の大斧
+    const axe = group(
+      cyl(0.05, 0.05, 1.0, COLORS.wood, 0, 0.3, 0, 6),
+      box(0.34, 0.3, 0.06, COLORS.steelDark, 0.14, 0.72, 0),
+      cone(0.06, 0.14, COLORS.steel, 0, 0.88, 0, 4),
+    );
+    axe.name = 'club';
+    axe.position.set(0, -0.72, 0.05);
+    axe.rotation.x = 0.45;
+    armR.add(axe);
+  }
 
   return { root, upper, headPivot, armL, armR };
 }
