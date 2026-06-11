@@ -5,10 +5,11 @@
 ## マイルストーン
 
 ### M0: プロジェクト基盤
-- [x] git リポジトリ初期化（GitHub リポジトリ作成は未）
+- [x] git リポジトリ初期化・GitHub リポジトリ公開（t3q4awmhsub1-hue/ORC_SURVIVOR）
 - [x] Vite + TypeScript + Three.js 雛形
-- [x] Vitest セットアップ（導入のみ、テストは M1 のロジック実装から）
-- [ ] GitHub Actions → GitHub Pages デプロイパイプライン（Hello Cube が公開される状態）
+- [x] Vitest セットアップ
+- [ ] GitHub Actions → GitHub Pages デプロイパイプライン
+      （※トークンの`workflow`スコープ待ち。現在は `npm run deploy` による gh-pages ブランチ配信で公開中）
 
 ### M1: コアループ（MVP）
 - [x] ゲームループ／シーン管理（タイトル→ゲーム→リザルト→リトライ）
@@ -35,8 +36,11 @@
 - [x] 称号システム（村の小悪党〜勇者卸売業者、クリアで真・魔王軍最強オーク）
 - [x] OGP（ゲーム画面から生成した1200x630画像）・タイトルロゴ・クレジット表記
 - [x] バランス調整（自動プレイシミュレーションで検証。回避AIが最長9:54到達、回帰テスト化済み）
-- [ ] v1.0 公開
+- [x] v1.0 公開（https://t3q4awmhsub1-hue.github.io/ORC_SURVIVOR/ ・本番ヘルスチェック済み）
 
 ## 進捗ログ
 - 2026-06-11: コンセプト決定（案B: ORC SURVIVOR、PC専用）。SPEC.md v0.1 作成
 - 2026-06-11: Vite+TS+Three.js 基盤構築。コード生成3Dアセット一式（キャラ9種・小物5種）とアセットビューワー（`npm run dev` で確認可）を実装。外部素材ゼロ方針で確定
+- 2026-06-11: ゲーム本体実装（M1〜M3）。ロジック層はThree.js非依存・テスト51件。敵300体で0.35ms/frame
+- 2026-06-11: 自動プレイシミュレーションでバランス調整（回避AIが最長9:54到達）。共有カード・称号・OGP実装
+- 2026-06-11: **v1.0公開** https://t3q4awmhsub1-hue.github.io/ORC_SURVIVOR/ （gh-pages配信、本番でゲーム動作・60fps確認済み）。残タスク: Actionsパイプライン（workflowスコープ待ち）
