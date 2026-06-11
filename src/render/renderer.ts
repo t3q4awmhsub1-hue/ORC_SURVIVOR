@@ -49,6 +49,8 @@ export class GameRenderer {
   private groundMat!: THREE.MeshLambertMaterial;
   private treeMesh!: THREE.InstancedMesh;
   private rockMesh!: THREE.InstancedMesh;
+  private grassMesh!: THREE.InstancedMesh;
+  private mountainMat!: THREE.MeshLambertMaterial;
   private readonly playerRig: OrcRig;
   private playerClub: THREE.Object3D | null = null;
   private readonly minionRigs: OrcRig[] = [];
@@ -115,8 +117,8 @@ export class GameRenderer {
     sc.far = 60;
     this.scene.add(this.sun, this.sun.target);
 
-    // 地面とアリーナ境界
-    this.groundMat = new THREE.MeshLambertMaterial({ color: 0x6f9c54 });
+    // 地面とアリーナ境界（プロシージャルなまだら模様で平面の単調さを消す）
+    this.groundMat = new THREE.MeshLambertMaterial({ color: 0x6f9c54, map: this.makeGroundTexture() });
     const ground = new THREE.Mesh(
       new THREE.CircleGeometry(ARENA_RADIUS + 25, 64),
       this.groundMat,
@@ -288,6 +290,41 @@ export class GameRenderer {
     return g;
   }
 
+  /** 草地のまだら・土の斑点をCanvasで生成（グレースケール: ステージ色が乗算される） */
+  private makeGroundTexture(): THREE.CanvasTexture {
+    const size = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, size, size);
+    const rng = mulberry32(4242);
+    for (let i = 0; i < 420; i++) {
+      const v = 235 + Math.floor(rng() * 40) - 20; // 明暗のゆらぎ
+      ctx.fillStyle = `rgba(${v},${v},${v},0.5)`;
+      const r = 3 + rng() * 14;
+      ctx.beginPath();
+      ctx.arc(rng() * size, rng() * size, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // 草の短いストローク
+    ctx.strokeStyle = 'rgba(210,220,205,0.35)';
+    for (let i = 0; i < 240; i++) {
+      const x = rng() * size;
+      const y = rng() * size;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + (rng() - 0.5) * 4, y - 3 - rng() * 4);
+      ctx.stroke();
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(10, 10);
+    return tex;
+  }
+
   /** ステージの配色テーマを適用する */
   setStage(id: StageId): void {
     const s = STAGES[id];
@@ -299,6 +336,11 @@ export class GameRenderer {
     this.hemi.groundColor.setHex(s.hemiGround);
     (this.treeMesh.material as THREE.MeshLambertMaterial).color.setHex(s.treeTint);
     (this.rockMesh.material as THREE.MeshLambertMaterial).color.setHex(s.rockTint);
+    // 草は基本色(緑)にステージ色を乗算（白だと素のコーンが見えてしまう）
+    (this.grassMesh.material as THREE.MeshLambertMaterial).color
+      .setHex(0x4f8f3a)
+      .multiply(new THREE.Color(s.treeTint));
+    this.mountainMat.color.setHex(s.mountain);
   }
 
   private scatterDecorations(): void {
@@ -324,8 +366,41 @@ export class GameRenderer {
     }
     treeMesh.count = t;
     rockMesh.count = r;
+
+    // 草むら（小さな茂みを散らして地面に変化を付ける）
+    const grass = new THREE.InstancedMesh(
+      new THREE.ConeGeometry(0.14, 0.34, 5),
+      new THREE.MeshLambertMaterial({ color: 0x4f8f3a, flatShading: true }),
+      140,
+    );
+    grass.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+    for (let i = 0; i < 140; i++) {
+      const angle = rng() * Math.PI * 2;
+      const dist = 2 + rng() * (ARENA_RADIUS + 16);
+      this.dummy.position.set(Math.cos(angle) * dist, 0.12, Math.sin(angle) * dist);
+      this.dummy.rotation.set((rng() - 0.5) * 0.4, rng() * Math.PI, (rng() - 0.5) * 0.4);
+      this.dummy.scale.set(1 + rng(), 0.8 + rng() * 0.8, 1 + rng());
+      this.dummy.updateMatrix();
+      grass.setMatrixAt(i, this.dummy.matrix);
+    }
+    grass.receiveShadow = true;
+    this.grassMesh = grass;
+
+    // 遠景の山並み（霧の向こうにシルエット）
+    this.mountainMat = new THREE.MeshLambertMaterial({ color: 0x4f7058, flatShading: true });
+    const mountains = new THREE.Group();
+    for (let i = 0; i < 9; i++) {
+      const angle = (i / 9) * Math.PI * 2 + rng() * 0.4;
+      const dist = 78 + rng() * 14;
+      const m = new THREE.Mesh(new THREE.ConeGeometry(10 + rng() * 9, 9 + rng() * 9, 5), this.mountainMat);
+      m.position.set(Math.cos(angle) * dist, 0, Math.sin(angle) * dist);
+      m.rotation.y = rng() * Math.PI;
+      mountains.add(m);
+    }
+
     this.dummy.scale.setScalar(1);
-    this.scene.add(treeMesh, rockMesh);
+    this.dummy.rotation.set(0, 0, 0);
+    this.scene.add(treeMesh, rockMesh, grass, mountains);
   }
 
   resize(): void {

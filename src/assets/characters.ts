@@ -161,8 +161,12 @@ export function buildOrcRig(): OrcRig {
   // 短く太い脚
   root.add(box(0.28, 0.5, 0.32, COLORS.orcSkin, -0.23, 0.25, 0));
   root.add(box(0.28, 0.5, 0.32, COLORS.orcSkin, 0.23, 0.25, 0));
-  // 腰布
+  // 腰布とスカルバックルのベルト
   root.add(box(0.62, 0.28, 0.46, COLORS.woodLight, 0, 0.56, 0));
+  root.add(box(0.66, 0.09, 0.5, 0x3a2a18, 0, 0.66, 0));
+  root.add(box(0.14, 0.12, 0.06, COLORS.tuskWhite, 0, 0.66, 0.26)); // スカルバックル
+  root.add(box(0.04, 0.05, 0.07, 0x1c1c24, -0.03, 0.665, 0.27));
+  root.add(box(0.04, 0.05, 0.07, 0x1c1c24, 0.03, 0.665, 0.27));
 
   // 前傾した上半身（猫背ピボット）
   const upper = new THREE.Group();
@@ -172,6 +176,11 @@ export function buildOrcRig(): OrcRig {
 
   upper.add(box(0.95, 0.7, 0.55, COLORS.orcSkin, 0, 0.38, 0));
   upper.add(box(0.99, 0.22, 0.59, COLORS.orcSkinDark, 0, 0.62, 0)); // 肩まわりの影色
+  // 左肩の鉄肩当て（歴戦感）
+  upper.add(box(0.4, 0.16, 0.45, 0x5a6570, -0.5, 0.74, 0));
+  upper.add(box(0.36, 0.1, 0.41, 0x6e7a86, -0.5, 0.84, 0));
+  const pauldronSpike = cone(0.07, 0.22, 0x8a939e, -0.5, 0.97, 0, 5);
+  upper.add(pauldronSpike);
 
   // 頭
   const headPivot = new THREE.Group();

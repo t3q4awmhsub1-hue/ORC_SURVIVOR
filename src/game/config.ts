@@ -34,6 +34,8 @@ export interface StageDef {
   hemiGround: number;
   treeTint: number;
   rockTint: number;
+  /** 遠景の山並みの色 */
+  mountain: number;
 }
 
 export const STAGES: Record<StageId, StageDef> = {
@@ -43,7 +45,7 @@ export const STAGES: Record<StageId, StageDef> = {
     rateMul: 1, hpMul: 1, dmgMul: 1, scoreMul: 1,
     ground: 0x6f9c54, sky: 0x9ed1e8, sun: 0xfff2d8,
     hemiSky: 0xbfd9ff, hemiGround: 0x6a8a4f,
-    treeTint: 0xffffff, rockTint: 0xffffff,
+    treeTint: 0xffffff, rockTint: 0xffffff, mountain: 0x4f7058,
   },
   snow: {
     name: '雪原の国境', difficulty: 'むずかしい', icon: '⛄',
@@ -51,7 +53,7 @@ export const STAGES: Record<StageId, StageDef> = {
     rateMul: 1.3, hpMul: 1.2, dmgMul: 1.1, scoreMul: 1.5,
     ground: 0xd8e4ea, sky: 0xc2d4e2, sun: 0xeef4ff,
     hemiSky: 0xdde8f2, hemiGround: 0x9fb4c0,
-    treeTint: 0xa8c8d8, rockTint: 0xc8d8e2,
+    treeTint: 0xa8c8d8, rockTint: 0xc8d8e2, mountain: 0xb8ccd8,
   },
   hell: {
     name: '勇者の本国', difficulty: 'じごく', icon: '🔥',
@@ -59,7 +61,7 @@ export const STAGES: Record<StageId, StageDef> = {
     rateMul: 1.6, hpMul: 1.45, dmgMul: 1.25, scoreMul: 2,
     ground: 0x55303a, sky: 0x301622, sun: 0xff8a55,
     hemiSky: 0x6a3a50, hemiGround: 0x3a2028,
-    treeTint: 0xb06a6a, rockTint: 0x9a6a72,
+    treeTint: 0xb06a6a, rockTint: 0x9a6a72, mountain: 0x2e1822,
   },
 };
 export const ARENA_RADIUS = 55;       // 移動可能範囲
