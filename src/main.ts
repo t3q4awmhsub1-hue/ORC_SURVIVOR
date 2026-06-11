@@ -5,6 +5,7 @@ import { PrologueScenes } from './render/prologueScenes';
 import { EndingPlayer } from './render/endingScenes';
 import { Sound } from './audio/sound';
 import { UI, collectStats } from './ui/ui';
+import { VirtualJoystick } from './ui/joystick';
 
 const GAME_URL = 'https://t3q4awmhsub1-hue.github.io/ORC_SURVIVOR/';
 const HS_KEY = 'orc-survivor-highscore';
@@ -15,9 +16,14 @@ const PROLOGUE_SEEN_KEY = 'orc-survivor-prologue-seen';
 const ui = new UI();
 const sound = new Sound();
 const renderer = new GameRenderer(document.getElementById('game')!);
+const joystick = new VirtualJoystick();
+
+// iOSの自動再生制限: 最初のタッチでオーディオを有効化
+document.addEventListener('touchstart', () => sound.ensure(), { once: true });
 
 let state: AppState = 'title';
 let world = new GameWorld(1);
+joystick.enabled = () => state === 'playing';
 let resultDelay = 0;
 let bgmLevel: 1 | 2 | 3 = 1;
 
@@ -31,6 +37,7 @@ declare global {
       bench: (frames?: number) => number;
       forceEnding: () => void;
       endingStep: (dt?: number) => void;
+      input: () => { dx: number; dz: number };
     };
   }
 }
@@ -53,6 +60,7 @@ window.__game = {
   // エンディング演出の検証用（rAFスロットリング環境でも進められる）
   forceEnding: () => beginEnding(),
   endingStep: (dt = 0.5) => ending?.render(dt),
+  input: () => inputVector(),
 };
 
 // --- 入力 -------------------------------------------------------------------
@@ -101,6 +109,8 @@ addEventListener('keydown', (ev) => {
 addEventListener('keyup', (ev) => keys.delete(ev.code));
 
 function inputVector(): { dx: number; dz: number } {
+  // タッチ入力優先（スティックを倒している間）
+  if (joystick.active) return { dx: joystick.dx, dz: joystick.dz };
   let dx = 0;
   let dz = 0;
   if (keys.has('KeyA') || keys.has('ArrowLeft')) dx -= 1;
@@ -127,6 +137,18 @@ document.getElementById('quit')!.addEventListener('click', () => {
   sound.stopBgm();
   state = 'title';
   showTitle();
+});
+document.getElementById('btn-pause')!.addEventListener('click', () => {
+  if (state === 'playing' && !ui.levelUpVisible) {
+    state = 'paused';
+    joystick.reset();
+    ui.showPause();
+  }
+});
+document.getElementById('btn-mute')!.addEventListener('click', () => {
+  sound.ensure();
+  const muted = sound.toggleMute();
+  document.getElementById('btn-mute')!.textContent = muted ? '🔇' : '🔊';
 });
 
 // --- 状態遷移 ------------------------------------------------------------------

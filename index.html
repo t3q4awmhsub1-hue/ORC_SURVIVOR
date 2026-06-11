@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <title>ORC SURVIVOR 〜5分間、勇者を返り討て〜</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='6' width='24' height='20' rx='4' fill='%235d9b45'/%3E%3Crect x='9' y='13' width='5' height='3' fill='%23ff2e1f'/%3E%3Crect x='18' y='13' width='5' height='3' fill='%23ff2e1f'/%3E%3Cpath d='M9 26 L11 19 L13 26 Z' fill='%23efe8d8'/%3E%3Cpath d='M23 26 L21 19 L19 26 Z' fill='%23efe8d8'/%3E%3C/svg%3E" />
   <meta name="description" content="あなたはオーク。無限に湧いてくる勇者の大群を薙ぎ払い、5分間生き残れ。ブラウザで今すぐ遊べる立場逆転サバイバー。" />
   <meta property="og:title" content="ORC SURVIVOR 〜5分間、勇者を返り討て〜" />
@@ -23,6 +23,8 @@
       margin: 0; overflow: hidden; background: var(--dark);
       font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', system-ui, sans-serif;
       color: #e8eee0; user-select: none;
+      touch-action: none; overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
     }
     .hidden { display: none !important; }
     #game canvas { display: block; }
@@ -58,6 +60,31 @@
       position: absolute; top: 18px; right: 18px; font-size: 28px; font-weight: 900;
       text-shadow: 0 2px 8px rgba(0,0,0,.6);
     }
+    /* 仮想スティック */
+    #stick-base {
+      display: none; position: fixed; z-index: 14; width: 120px; height: 120px;
+      margin: -60px 0 0 -60px; border-radius: 50%;
+      background: rgba(255,255,255,.08); border: 2px solid rgba(255,255,255,.3);
+      pointer-events: none;
+    }
+    #stick-knob {
+      position: absolute; left: 50%; top: 50%; width: 52px; height: 52px;
+      border-radius: 50%; background: rgba(125, 217, 87, .55);
+      border: 2px solid rgba(255,255,255,.5);
+      transform: translate(-50%, -50%);
+    }
+
+    /* HUD右下の小ボタン（モバイル用。PCでも害なし） */
+    #hud-buttons {
+      position: absolute; bottom: 16px; right: 14px; display: flex; gap: 10px;
+      pointer-events: auto;
+    }
+    #hud-buttons button {
+      width: 46px; height: 46px; padding: 0; border-radius: 50%;
+      background: rgba(15, 22, 12, .6); border: 1px solid rgba(255,255,255,.25);
+      font-size: 20px; line-height: 1;
+    }
+
     #relic-icons {
       position: absolute; top: 56px; right: 18px; font-size: 22px; letter-spacing: 3px;
       text-shadow: 0 0 10px rgba(255, 122, 240, .8), 0 1px 4px #000;
@@ -245,6 +272,10 @@
     <div id="kills">⚔ 0</div>
     <div id="relic-icons"></div>
     <div id="toasts"></div>
+    <div id="hud-buttons">
+      <button id="btn-mute" aria-label="ミュート">🔊</button>
+      <button id="btn-pause" aria-label="ポーズ">⏸</button>
+    </div>
     <div id="bossbar" class="hidden"><div id="bossfill"></div><span>真の勇者</span></div>
     <div id="warning" class="hidden">⚠ 真の勇者が現れた！</div>
   </div>
@@ -255,7 +286,7 @@
     <p id="highscore"></p>
     <button id="start">ゲーム開始 (SPACE)</button>
     <button id="replay-prologue" class="ghost">📜 物語をみる</button>
-    <p class="controls">移動: WASD / 矢印キー ・ 攻撃は自動 ・ 1-3: スキル選択 ・ ESC: ポーズ ・ M: ミュート</p>
+    <p class="controls">PC: WASD / 矢印キーで移動 ・ スマホ: 画面をドラッグで移動 ・ 攻撃は自動</p>
     <p class="credit">3Dモデル・効果音・BGMを含む全アセットはコード生成（外部素材不使用）</p>
   </div>
 
