@@ -8,3 +8,5 @@ prod-*.png
 game-*.png
 
 .claude/
+title-*.png
+*.png
