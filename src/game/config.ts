@@ -119,6 +119,32 @@ export const WEAPON_STATS = {
   }),
 } as const;
 
+// ---------------------------------------------------------------------------
+// 武器進化（武器Lv5 + 対応パッシブ所持で自動進化）
+// ---------------------------------------------------------------------------
+export interface EvolutionDef extends SkillInfo {
+  passive: PassiveKind;
+}
+
+export const EVOLUTIONS: Record<WeaponKind, EvolutionDef> = {
+  club:   { passive: 'muscle',   name: '魔王の大金棒',     desc: '全周を薙ぎ払う一撃', icon: '⚒️' },
+  bone:   { passive: 'nose',     name: '竜骨ブーメラン',   desc: '無限貫通で往復する', icon: '🪃' },
+  stomp:  { passive: 'bulk',     name: '大地割り',         desc: '大地を砕く巨大衝撃波', icon: '🌋' },
+  roar:   { passive: 'glutton',  name: '覇王の咆哮',       desc: '全方位の敵を怯ませる', icon: '👑' },
+  pig:    { passive: 'trotters', name: '豚の大群',         desc: '6頭のブタが踏み荒らす', icon: '🌪️' },
+  minion: { passive: 'skin',     name: 'オーク戦士団',     desc: '5体の精鋭が付き従う', icon: '⚔️' },
+};
+
+/** 進化後ステータス（WEAPON_STATSと同形。Lv5を大きく上回る性能） */
+export const EVOLVED_STATS = {
+  club:   { cooldown: 0.6,  dmg: 95,  range: 3.6, arc: Math.PI * 2, knockback: 6 },
+  bone:   { cooldown: 0.7,  dmg: 60,  count: 4, pierce: 99, speed: 15, boomerang: true },
+  stomp:  { cooldown: 2.0,  dmg: 75,  radius: 5.6, knockback: 13, stun: 0.8 },
+  roar:   { cooldown: 2.6,  dmg: 50,  range: 7.0, arc: Math.PI * 2, stun: 3.0, knockback: 9 },
+  pig:    { cooldown: 3.6,  count: 6, dmg: 120, speed: 12, radius: 1.1, knockback: 10 },
+  minion: { max: 5, dmg: 50, attackCooldown: 0.55, speed: 5.2, range: 1.0 },
+} as const;
+
 export const PASSIVE_STATS = {
   muscle:   (lv: number) => 1 + lv * 0.10,  // 攻撃力倍率
   skin:     (lv: number) => 1 - lv * 0.08,  // 被ダメ倍率

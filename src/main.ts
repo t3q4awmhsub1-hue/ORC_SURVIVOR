@@ -274,6 +274,10 @@ function processEvents(): void {
         sound.relic();
         if (e.text) ui.showToast(`✨超激レア✨ ${e.text}`, true);
         break;
+      case 'evolve':
+        sound.evolve();
+        if (e.text) ui.showToast(`⚡進化！ ${e.text}`, true);
+        break;
       case 'bossSpawn':
         sound.bossSpawn();
         ui.bossWarning();

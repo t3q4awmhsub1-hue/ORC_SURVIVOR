@@ -12,7 +12,7 @@ export type GameEventType =
   | 'kill' | 'hit' | 'levelup' | 'gem' | 'meat' | 'hurt'
   | 'clubSwing' | 'stomp' | 'roar' | 'boneThrow' | 'pigCharge' | 'minionSummon'
   | 'bossSpawn' | 'bossTelegraph' | 'bossDash' | 'wave'
-  | 'chest' | 'relic'
+  | 'chest' | 'relic' | 'evolve'
   | 'win' | 'lose';
 
 export interface GameEvent {
@@ -51,6 +51,9 @@ export interface Projectile {
   pierce: number;
   life: number;
   hitIds: number[];
+  /** 進化骨投げ: 折り返して戻ってくる */
+  boomerang: boolean;
+  returning: boolean;
 }
 
 export interface Gem { active: boolean; x: number; z: number; value: number }
@@ -65,6 +68,13 @@ export interface Minion { x: number; z: number; attackCd: number; facingX: numbe
 const PROJECTILE_CAP = 220;
 const MEAT_CAP = 30;
 const PIG_CAP = 12;
+
+// 武器ステータスの構造型（通常Lvと進化後で共通の形）
+type ClubStats = { cooldown: number; dmg: number; range: number; arc: number; knockback: number };
+type BoneStats = { cooldown: number; dmg: number; count: number; pierce: number; speed: number; boomerang?: boolean };
+type StompStats = { cooldown: number; dmg: number; radius: number; knockback: number; stun?: number };
+type RoarStats = { cooldown: number; dmg: number; range: number; arc: number; stun: number; knockback: number };
+type PigStats = { cooldown: number; count: number; dmg: number; speed: number; radius: number; knockback: number };
 
 export class GameWorld {
   readonly rng: Rng;
@@ -88,6 +98,7 @@ export class GameWorld {
   weapons = new Map<C.WeaponKind, number>();
   passives = new Map<C.PassiveKind, number>();
   readonly relics = new Set<C.RelicId>();
+  readonly evolved = new Set<C.WeaponKind>();
   private weaponCds = new Map<C.WeaponKind, number>();
 
   pendingChoices: UpgradeChoice[] | null = null;
@@ -125,7 +136,7 @@ export class GameWorld {
     for (let i = 0; i < PROJECTILE_CAP; i++) {
       this.projectiles.push({
         active: false, kind: 'bone', fromPlayer: true, x: 0, z: 0, vx: 0, vz: 0,
-        dmg: 0, pierce: 0, life: 0, hitIds: [],
+        dmg: 0, pierce: 0, life: 0, hitIds: [], boomerang: false, returning: false,
       });
     }
     for (let i = 0; i < C.GEM_CAP; i++) this.gems.push({ active: false, x: 0, z: 0, value: 0 });
@@ -339,6 +350,11 @@ export class GameWorld {
   }
 
   // --- 武器 ----------------------------------------------------------------
+  /** 進化済みなら進化ステータス、未進化ならレベル相応のステータス */
+  private weaponStats<K extends C.WeaponKind>(kind: K, lv: number): unknown {
+    return this.evolved.has(kind) ? C.EVOLVED_STATS[kind] : C.WEAPON_STATS[kind](lv);
+  }
+
   private updateWeapons(dt: number): void {
     for (const [kind, lv] of this.weapons) {
       const cd = (this.weaponCds.get(kind) ?? 0) - dt;
@@ -347,15 +363,30 @@ export class GameWorld {
         continue;
       }
       switch (kind) {
-        case 'club': this.fireClub(lv); break;
-        case 'bone': this.fireBone(lv); break;
-        case 'stomp': this.fireStomp(lv); break;
-        case 'roar': this.fireRoar(lv); break;
-        case 'pig': this.firePig(lv); break;
+        case 'club': this.fireClub(this.weaponStats('club', lv) as ClubStats); break;
+        case 'bone': this.fireBone(this.weaponStats('bone', lv) as BoneStats); break;
+        case 'stomp': this.fireStomp(this.weaponStats('stomp', lv) as StompStats); break;
+        case 'roar': this.fireRoar(this.weaponStats('roar', lv) as RoarStats); break;
+        case 'pig': this.firePig(this.weaponStats('pig', lv) as PigStats); break;
         case 'minion': break; // 召喚はupdateMinionsで管理
       }
-      const stats = C.WEAPON_STATS[kind](lv) as { cooldown?: number };
+      const stats = this.weaponStats(kind, lv) as { cooldown?: number };
       this.weaponCds.set(kind, (stats.cooldown ?? 1) * this.cooldownMul);
+    }
+  }
+
+  /** 武器Lv5 + 対応パッシブ所持で自動進化する */
+  private checkEvolutions(): void {
+    for (const [kind, lv] of this.weapons) {
+      if (lv < C.MAX_SKILL_LEVEL || this.evolved.has(kind)) continue;
+      const def = C.EVOLUTIONS[kind];
+      if (this.passives.has(def.passive)) {
+        this.evolved.add(kind);
+        this.emit({
+          type: 'evolve', kind, x: this.px, z: this.pz,
+          text: `${C.WEAPON_INFO[kind].name} → ${def.icon} ${def.name}！ ${def.desc}`,
+        });
+      }
     }
   }
 
@@ -471,6 +502,7 @@ export class GameWorld {
         break;
       }
     }
+    this.checkEvolutions(); // 宝箱由来のLvアップでも進化条件を満たし得る
   }
 
   /** 所持スキルからランダムに1つLvを上げる。対象がなければnull */
@@ -519,8 +551,7 @@ export class GameWorld {
     return { x: (e.x - this.px) / d, z: (e.z - this.pz) / d };
   }
 
-  private fireClub(lv: number): void {
-    const s = C.WEAPON_STATS.club(lv);
+  private fireClub(s: ClubStats): void {
     this.emit({ type: 'clubSwing' });
     const aim = this.aimDir(s.range * 1.5);
     const n = this.grid.queryCircle(this.px, this.pz, s.range, this.queryOut);
@@ -537,8 +568,7 @@ export class GameWorld {
     }
   }
 
-  private fireBone(lv: number): void {
-    const s = C.WEAPON_STATS.bone(lv);
+  private fireBone(s: BoneStats): void {
     const n = this.grid.queryCircle(this.px, this.pz, 15, this.queryOut);
     if (n === 0) {
       this.weaponCds.set('bone', 0.25); // 標的なし: 少し待って再試行
@@ -559,13 +589,12 @@ export class GameWorld {
       const dx = e.x - this.px;
       const dz = e.z - this.pz;
       const d = Math.hypot(dx, dz) || 1;
-      this.spawnProjectile('bone', true, this.px, this.pz, (dx / d) * s.speed, (dz / d) * s.speed, s.dmg, s.pierce);
+      this.spawnProjectile('bone', true, this.px, this.pz, (dx / d) * s.speed, (dz / d) * s.speed, s.dmg, s.pierce, s.boomerang ?? false);
     }
     this.emit({ type: 'boneThrow' });
   }
 
-  private fireStomp(lv: number): void {
-    const s = C.WEAPON_STATS.stomp(lv);
+  private fireStomp(s: StompStats): void {
     this.emit({ type: 'stomp', x: this.px, z: this.pz, value: s.radius });
     const n = this.grid.queryCircle(this.px, this.pz, s.radius, this.queryOut);
     for (let k = 0; k < n; k++) {
@@ -573,12 +602,11 @@ export class GameWorld {
       const dx = e.x - this.px;
       const dz = e.z - this.pz;
       const d = Math.hypot(dx, dz) || 1;
-      this.damageEnemy(e, s.dmg, dx / d, dz / d, s.knockback);
+      this.damageEnemy(e, s.dmg, dx / d, dz / d, s.knockback, s.stun ?? 0);
     }
   }
 
-  private fireRoar(lv: number): void {
-    const s = C.WEAPON_STATS.roar(lv);
+  private fireRoar(s: RoarStats): void {
     this.emit({ type: 'roar', x: this.px, z: this.pz, value: s.range });
     const aim = this.aimDir(s.range * 1.3);
     const n = this.grid.queryCircle(this.px, this.pz, s.range, this.queryOut);
@@ -595,8 +623,7 @@ export class GameWorld {
     }
   }
 
-  private firePig(lv: number): void {
-    const s = C.WEAPON_STATS.pig(lv);
+  private firePig(s: PigStats): void {
     let launched = 0;
     for (const p of this.pigs) {
       if (p.active || launched >= s.count) continue;
@@ -622,6 +649,7 @@ export class GameWorld {
   private spawnProjectile(
     kind: C.ProjectileKind, fromPlayer: boolean,
     x: number, z: number, vx: number, vz: number, dmg: number, pierce: number,
+    boomerang = false,
   ): void {
     const p = this.projectiles.find((p) => !p.active);
     if (!p) return;
@@ -636,13 +664,15 @@ export class GameWorld {
     p.pierce = pierce;
     p.life = 2.5;
     p.hitIds.length = 0;
+    p.boomerang = boomerang;
+    p.returning = false;
   }
 
   // --- 子分オーク ----------------------------------------------------------
   private updateMinions(dt: number): void {
     const lv = this.weapons.get('minion');
     if (lv === undefined) return;
-    const s = C.WEAPON_STATS.minion(lv);
+    const s = this.evolved.has('minion') ? C.EVOLVED_STATS.minion : C.WEAPON_STATS.minion(lv);
     while (this.minions.length < s.max) {
       const angle = (this.minions.length / 3) * Math.PI * 2 + Math.PI;
       this.minions.push({
@@ -870,6 +900,13 @@ export class GameWorld {
         p.active = false;
         continue;
       }
+      // 竜骨ブーメラン: 半分の寿命で折り返し、戻り道でも当たる
+      if (p.boomerang && !p.returning && p.life < 1.25) {
+        p.returning = true;
+        p.vx *= -1;
+        p.vz *= -1;
+        p.hitIds.length = 0;
+      }
       if (p.fromPlayer) {
         const n = this.grid.queryCircle(p.x, p.z, 0.5, this.queryOut);
         for (let k = 0; k < n; k++) {
@@ -970,6 +1007,7 @@ export class GameWorld {
     this.pendingChoices = this.pendingLevelUps > 0
       ? generateChoices(this.rng, this.weapons, this.passives)
       : null;
+    this.checkEvolutions();
   }
 
   /** テスト・デバッグ用: 任意の宝箱を任意の位置に出す */

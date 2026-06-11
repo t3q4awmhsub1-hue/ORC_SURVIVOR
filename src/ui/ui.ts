@@ -1,4 +1,4 @@
-import { GAME_DURATION, RELICS, expForLevel } from '../game/config';
+import { EVOLUTIONS, GAME_DURATION, RELICS, expForLevel } from '../game/config';
 import type { GameWorld } from '../game/world';
 import { choiceInfo, type UpgradeChoice } from '../game/upgrades';
 import { PROLOGUE_PAGES, epilogueText } from './prologue';
@@ -130,7 +130,11 @@ export class UI {
     }
 
     const icons: string[] = [];
-    for (const [id, lv] of world.weapons) icons.push(`${choiceInfo({ kind: 'weapon', id, nextLevel: lv }).icon}${lv}`);
+    for (const [id, lv] of world.weapons) {
+      icons.push(world.evolved.has(id)
+        ? `${EVOLUTIONS[id].icon}EX`
+        : `${choiceInfo({ kind: 'weapon', id, nextLevel: lv }).icon}${lv}`);
+    }
     for (const [id, lv] of world.passives) icons.push(`${choiceInfo({ kind: 'passive', id, nextLevel: lv }).icon}${lv}`);
     this.skillIcons.textContent = icons.join(' ');
     el('relic-icons').textContent = [...world.relics].map((id) => RELICS[id].icon).join(' ');
@@ -242,7 +246,9 @@ export class UI {
 export function collectStats(world: GameWorld, title: string): RunStats {
   const icons: string[] = [];
   for (const id of world.relics) icons.push(RELICS[id].icon);
-  for (const [id] of world.weapons) icons.push(choiceInfo({ kind: 'weapon', id, nextLevel: 1 }).icon);
+  for (const [id] of world.weapons) {
+    icons.push(world.evolved.has(id) ? EVOLUTIONS[id].icon : choiceInfo({ kind: 'weapon', id, nextLevel: 1 }).icon);
+  }
   for (const [id] of world.passives) icons.push(choiceInfo({ kind: 'passive', id, nextLevel: 1 }).icon);
   return {
     won: world.state === 'won',

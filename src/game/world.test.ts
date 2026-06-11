@@ -199,6 +199,70 @@ describe('スポーンタイムライン', () => {
   });
 });
 
+describe('武器進化', () => {
+  it('武器Lv5 + 対応パッシブ所持で自動進化する', () => {
+    const w = new GameWorld(1);
+    w.weapons.set('club', 4);
+    w.passives.set('muscle', 1);
+    w.pendingChoices = [{ kind: 'weapon', id: 'club', nextLevel: 5 }];
+    w.chooseUpgrade(0);
+    expect(w.evolved.has('club')).toBe(true);
+    expect(w.events.some((e) => e.type === 'evolve' && e.kind === 'club')).toBe(true);
+  });
+
+  it('対応パッシブがなければLv5でも進化しない', () => {
+    const w = new GameWorld(1);
+    w.weapons.set('club', 4);
+    w.passives.set('skin', 5); // 対応外のパッシブ
+    w.pendingChoices = [{ kind: 'weapon', id: 'club', nextLevel: 5 }];
+    w.chooseUpgrade(0);
+    expect(w.evolved.has('club')).toBe(false);
+  });
+
+  it('武器がLv5になった後でパッシブを取っても進化する', () => {
+    const w = new GameWorld(1);
+    w.weapons.set('bone', 5);
+    w.pendingChoices = [{ kind: 'passive', id: 'nose', nextLevel: 1 }];
+    w.chooseUpgrade(0);
+    expect(w.evolved.has('bone')).toBe(true);
+  });
+
+  it('宝箱のLvアップ経由でも進化する', () => {
+    const w = new GameWorld(1);
+    w.weapons.set('club', 4);
+    w.passives.set('muscle', 5); // 強化候補はclubのみ
+    w.spawnChestForTest('silver', 0, 0.5);
+    step(w, 0.1, IDLE);
+    expect(w.weapons.get('club')).toBe(5);
+    expect(w.evolved.has('club')).toBe(true);
+  });
+
+  it('進化した棍棒は全周(背後の敵も)を薙ぎ払う', () => {
+    const w = new GameWorld(1);
+    w.weapons.set('club', 5);
+    w.passives.set('muscle', 1);
+    w.pendingChoices = [{ kind: 'heal' }];
+    w.chooseUpgrade(0); // checkEvolutionsを発火
+    expect(w.evolved.has('club')).toBe(true);
+    w.spawnEnemy('trainee', { x: 0, z: 1.5 });
+    w.spawnEnemy('trainee', { x: 0, z: -1.5 });
+    step(w, 0.6, IDLE); // 進化棍棒の初撃（タイムラインの初スポーンは0.71s以降）
+    expect(w.kills).toBe(2); // 前後とも一撃で討伐
+  });
+
+  it('竜骨ブーメランは折り返して戻ってくる', () => {
+    const w = new GameWorld(1);
+    w.weapons.set('bone', 5);
+    w.passives.set('nose', 1);
+    w.pendingChoices = [{ kind: 'heal' }];
+    w.chooseUpgrade(0);
+    expect(w.evolved.has('bone')).toBe(true);
+    w.spawnEnemy('knight', { x: 0, z: 8 });
+    step(w, 1.5, IDLE); // 寿命2.5sの半分(1.25s)を超えて折り返している
+    expect(w.projectiles.some((p) => p.active && p.boomerang && p.returning)).toBe(true);
+  });
+});
+
 describe('宝箱', () => {
   it('パラディンは確定で金の宝箱をドロップする', () => {
     const w = new GameWorld(1);

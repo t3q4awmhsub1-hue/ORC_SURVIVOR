@@ -101,6 +101,13 @@ export class Sound {
       this.tone(520, 0.1, 'square', 0.07, 660);
     }
   }
+  evolve(): void {
+    // 重い衝撃 + 力強い上昇コード
+    this.tone(60, 0.4, 'sine', 0.3, 28);
+    this.noise(0.25, 0.2, 600);
+    [262, 330, 392, 523, 659].forEach((f, i) =>
+      this.tone(f, 0.22, 'sawtooth', 0.07, undefined, 0.25 + i * 0.08));
+  }
   relic(): void {
     // 上昇するライザー + キラキラのファンファーレ
     this.tone(160, 0.7, 'sawtooth', 0.1, 640);

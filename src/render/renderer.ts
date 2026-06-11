@@ -46,6 +46,7 @@ export class GameRenderer {
 
   private readonly sun: THREE.DirectionalLight;
   private readonly playerRig: OrcRig;
+  private playerClub: THREE.Object3D | null = null;
   private readonly minionRigs: OrcRig[] = [];
   private bossModel: THREE.Group | null = null;
   private readonly telegraphRing: THREE.Mesh;
@@ -129,6 +130,7 @@ export class GameRenderer {
 
     // プレイヤー
     this.playerRig = buildOrcRig();
+    this.playerClub = this.playerRig.root.getObjectByName('club') ?? null;
     this.scene.add(this.playerRig.root);
 
     // 敵（種類ごとにベイク + InstancedMesh）
@@ -356,6 +358,13 @@ export class GameRenderer {
         this.beamT = 0;
         this.shake = Math.max(this.shake, 0.5);
         break;
+      case 'evolve':
+        this.burst(world.px, 1.2, world.pz, 70, 0xffb52e);
+        this.burst(world.px, 0.8, world.pz, 35, 0xff5a1f);
+        this.spawnRing(world.px, world.pz, 5, 0xffb52e);
+        this.beamT = 0;
+        this.shake = Math.max(this.shake, 0.7);
+        break;
       case 'bossDash':
         this.shake = Math.max(this.shake, 0.5);
         break;
@@ -458,6 +467,8 @@ export class GameRenderer {
       rig.root.scale.setScalar(1);
     }
     rig.root.visible = world.state !== 'lost';
+    // 進化した棍棒は巨大化する
+    this.playerClub?.scale.setScalar(world.evolved.has('club') ? 1.7 : 1.1);
   }
 
   private updateEnemies(world: GameWorld): void {
@@ -498,6 +509,7 @@ export class GameRenderer {
       this.minionRigs.push(rig);
       this.scene.add(rig.root);
     }
+    const minionScale = world.evolved.has('minion') ? 0.8 : 0.62; // 戦士団は一回り大きい
     this.minionRigs.forEach((rig, i) => {
       const m = world.minions[i];
       if (!m) {
@@ -505,6 +517,7 @@ export class GameRenderer {
         return;
       }
       rig.root.visible = true;
+      rig.root.scale.setScalar(minionScale);
       rig.root.position.set(m.x, Math.abs(Math.sin(this.elapsed * 10 + i * 2)) * 0.08, m.z);
       rig.root.rotation.y = Math.atan2(m.facingX, m.facingZ);
     });

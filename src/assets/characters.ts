@@ -216,8 +216,9 @@ export function buildOrcRig(): OrcRig {
   const armR = mkArm(1);
   armR.rotation.x = -0.45;
 
-  // 棍棒
+  // 棍棒（進化演出でスケールするため名前を付けておく）
   const club = buildClub(1.1);
+  club.name = 'club';
   club.position.set(0, -0.72, 0.05);
   club.rotation.x = 0.45;
   armR.add(club);
