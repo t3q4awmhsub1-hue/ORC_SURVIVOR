@@ -120,6 +120,7 @@ export class UI {
     this.timer.classList.toggle('final', bossAlive || remain <= 60);
 
     this.hpfill.style.width = `${Math.max(0, (world.hp / world.maxHp) * 100)}%`;
+    el('hpbar').classList.toggle('low', world.hp / world.maxHp < 0.3);
     this.lvl.textContent = `Lv${world.level}`;
     this.expfill.style.width = `${(world.exp / expForLevel(world.level)) * 100}%`;
     this.killsEl.textContent = `⚔ ${world.kills.toLocaleString()}`;
@@ -157,6 +158,7 @@ export class UI {
       const info = choiceInfo(c);
       const card = document.createElement('button');
       card.className = 'choice';
+      card.style.animationDelay = `${i * 0.09}s`;
       card.dataset.index = String(i);
       card.innerHTML = `
         <span class="choice-key">${i + 1}</span>
@@ -213,10 +215,11 @@ export class UI {
     el('result-story').textContent = epilogueText(stats.won, stats.timeSec);
     el('result-stats').innerHTML = `
       <div class="stat"><span>称号</span><strong>「${stats.title}」</strong></div>
-      <div class="stat"><span>討伐した勇者</span><strong>${stats.kills.toLocaleString()}人</strong></div>
+      <div class="stat"><span>討伐した勇者</span><strong><em id="kills-counter">0</em>人</strong></div>
       <div class="stat"><span>生存時間</span><strong>${formatTime(stats.timeSec)}</strong></div>
       <div class="stat"><span>スコア</span><strong>${stats.score.toLocaleString()}</strong></div>
       <div class="stat"><span>到達レベル</span><strong>Lv${stats.level}</strong></div>`;
+    this.countUp(el('kills-counter'), stats.kills, 1100);
     const card = el<HTMLCanvasElement>('card');
     drawShareCard(card, stats);
     el('share-x').onclick = () => openXShare(stats, url);
@@ -227,6 +230,18 @@ export class UI {
       setTimeout(() => { el('copy-card').textContent = '画像をコピー'; }, 1600);
     };
     this.result.classList.remove('hidden');
+  }
+
+  /** 数字をカウントアップ表示（リザルトの討伐数演出） */
+  private countUp(node: HTMLElement, target: number, durationMs: number): void {
+    const t0 = performance.now();
+    const tick = () => {
+      const k = Math.min(1, (performance.now() - t0) / durationMs);
+      const eased = 1 - (1 - k) ** 3;
+      node.textContent = Math.round(target * eased).toLocaleString();
+      if (k < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
   }
 
   bossWarning(): void {

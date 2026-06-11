@@ -75,6 +75,7 @@ export class GameRenderer {
   private swingT = 1;
   private stompT = 1;
   private shake = 0;
+  private attractAngle = 0.6;
 
   constructor(parent: HTMLElement) {
     this.scene.background = new THREE.Color(0x9ed1e8);
@@ -426,7 +427,7 @@ export class GameRenderer {
   }
 
   // --- 毎フレーム描画 ---------------------------------------------------------
-  render(world: GameWorld, dt: number): void {
+  render(world: GameWorld, dt: number, attract = false): void {
     this.elapsed += dt;
     this.updatePlayer(world, dt);
     this.updateEnemies(world);
@@ -434,9 +435,27 @@ export class GameRenderer {
     this.updateBoss(world);
     this.updateInstancedPools(world);
     this.updateFx(dt);
-    this.updateCamera(world, dt);
+    if (attract) {
+      this.updateAttractCamera(world, dt);
+    } else {
+      this.updateCamera(world, dt);
+    }
     this.renderer.render(this.scene, this.camera);
     this.drawPopups(dt);
+  }
+
+  /** タイトル用: プレイヤーの周りをゆっくり旋回するカメラ */
+  private updateAttractCamera(world: GameWorld, dt: number): void {
+    this.attractAngle += dt * 0.1;
+    const r = 12;
+    this.camera.position.set(
+      world.px + Math.cos(this.attractAngle) * r,
+      6.0,
+      world.pz + Math.sin(this.attractAngle) * r,
+    );
+    this.camera.lookAt(world.px, 1.4, world.pz);
+    this.sun.position.set(world.px + 8, 16, world.pz + 6);
+    this.sun.target.position.set(world.px, 0, world.pz);
   }
 
   private updatePlayer(world: GameWorld, dt: number): void {

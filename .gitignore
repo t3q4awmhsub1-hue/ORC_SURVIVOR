@@ -6,3 +6,5 @@ dist/
 viewer-*.png
 prod-*.png
 game-*.png
+
+.claude/

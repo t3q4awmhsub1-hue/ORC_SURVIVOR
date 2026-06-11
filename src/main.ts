@@ -151,6 +151,18 @@ document.getElementById('btn-mute')!.addEventListener('click', () => {
   document.getElementById('btn-mute')!.textContent = muted ? '🔇' : '🔊';
 });
 
+// 音量スライダー（ポーズメニュー）。設定はlocalStorageに保持
+const VOLUME_KEY = 'orc-survivor-volume';
+const volumeSlider = document.getElementById('volume') as HTMLInputElement;
+const savedVolume = Number(localStorage.getItem(VOLUME_KEY) ?? 100);
+volumeSlider.value = String(savedVolume);
+sound.setVolume(savedVolume / 100);
+volumeSlider.addEventListener('input', () => {
+  sound.ensure();
+  sound.setVolume(Number(volumeSlider.value) / 100);
+  localStorage.setItem(VOLUME_KEY, volumeSlider.value);
+});
+
 // --- 状態遷移 ------------------------------------------------------------------
 
 /** タイトルからの開始: 初回はプロローグを挟む */
@@ -337,7 +349,8 @@ function tick(now: number): void {
       if (finTimer <= 0) showResultNow();
     }
   } else {
-    renderer.render(world, dt);
+    // タイトル中はアトラクトカメラでゆっくり旋回
+    renderer.render(world, dt, state === 'title');
   }
 }
 

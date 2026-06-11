@@ -9,7 +9,8 @@ export class Sound {
   private bgmTimer: number | null = null;
   private nextNoteTime = 0;
   private stepIndex = 0;
-  private intensity = 1; // 1: 序盤, 2: 中盤(5:00〜), 3: ボス
+  private intensity = 1; // 1: 序盤, 2: 中盤, 3: ボス
+  private volume = 1; // 0..1（マスター係数）
   muted = false;
 
   /** ユーザー操作のタイミングで呼ぶ */
@@ -20,7 +21,7 @@ export class Sound {
     }
     this.ctx = new AudioContext();
     this.master = this.ctx.createGain();
-    this.master.gain.value = 0.5;
+    this.applyGain();
     const comp = this.ctx.createDynamicsCompressor();
     this.master.connect(comp);
     comp.connect(this.ctx.destination);
@@ -31,8 +32,22 @@ export class Sound {
 
   toggleMute(): boolean {
     this.muted = !this.muted;
-    if (this.master) this.master.gain.value = this.muted ? 0 : 0.5;
+    this.applyGain();
     return this.muted;
+  }
+
+  /** 音量 0..1。ミュート状態とは独立に保持する */
+  setVolume(v: number): void {
+    this.volume = Math.max(0, Math.min(1, v));
+    this.applyGain();
+  }
+
+  getVolume(): number {
+    return this.volume;
+  }
+
+  private applyGain(): void {
+    if (this.master) this.master.gain.value = this.muted ? 0 : 0.5 * this.volume;
   }
 
   // --- SFXプリミティブ -------------------------------------------------------
