@@ -1,4 +1,4 @@
-import { GAME_DURATION, titleFor } from './game/config';
+import { GAME_DURATION, STAGES, titleFor, type StageId } from './game/config';
 import { GameWorld } from './game/world';
 import { GameRenderer } from './render/renderer';
 import { PrologueScenes } from './render/prologueScenes';
@@ -24,6 +24,23 @@ document.addEventListener('touchstart', () => sound.ensure(), { once: true });
 let state: AppState = 'title';
 let world = new GameWorld(1);
 joystick.enabled = () => state === 'playing';
+
+// ステージ選択（localStorageに保持。タイトル背景も即時プレビュー）
+const STAGE_KEY = 'orc-survivor-stage';
+let selectedStage = (localStorage.getItem(STAGE_KEY) ?? 'grass') as StageId;
+if (!STAGES[selectedStage]) selectedStage = 'grass';
+renderer.setStage(selectedStage);
+for (const btn of document.querySelectorAll<HTMLButtonElement>('.stage')) {
+  btn.classList.toggle('on', btn.dataset.stage === selectedStage);
+  btn.addEventListener('click', () => {
+    selectedStage = btn.dataset.stage as StageId;
+    localStorage.setItem(STAGE_KEY, selectedStage);
+    for (const b of document.querySelectorAll('.stage')) b.classList.toggle('on', b === btn);
+    renderer.setStage(selectedStage);
+    sound.ensure();
+    sound.gem();
+  });
+}
 let resultDelay = 0;
 let bgmLevel: 1 | 2 | 3 = 1;
 
@@ -222,7 +239,8 @@ function startRun(): void {
   const seed = params.has('seed')
     ? Number(params.get('seed'))
     : (Math.random() * 0xffffffff) >>> 0;
-  world = new GameWorld(seed);
+  world = new GameWorld(seed, selectedStage);
+  renderer.setStage(selectedStage);
   if (params.has('stress')) {
     world.debugSpawn('trainee', Math.min(300, Number(params.get('stress')) || 300));
   }

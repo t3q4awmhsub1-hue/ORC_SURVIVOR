@@ -7,6 +7,7 @@ export interface RunStats {
   timeSec: number;
   level: number;
   title: string;
+  stage: string;
   buildIcons: string[];
 }
 
@@ -68,7 +69,7 @@ export function drawShareCard(canvas: HTMLCanvasElement, stats: RunStats): void 
   ctx.font = 'bold 34px sans-serif';
   ctx.fillStyle = '#c9d6bb';
   ctx.fillText(
-    `生存 ${formatTime(stats.timeSec)}　/　SCORE ${stats.score.toLocaleString()}　/　Lv${stats.level}`,
+    `${stats.stage}　/　生存 ${formatTime(stats.timeSec)}　/　SCORE ${stats.score.toLocaleString()}　/　Lv${stats.level}`,
     600, 520,
   );
 
@@ -79,7 +80,7 @@ export function drawShareCard(canvas: HTMLCanvasElement, stats: RunStats): void 
 
 export function shareText(stats: RunStats, url: string): string {
   const result = stats.won ? '真の勇者を返り討ちにした！' : `${formatTime(stats.timeSec)}で力尽きた…`;
-  return `【ORC SURVIVOR】討伐した勇者${stats.kills.toLocaleString()}人で称号「${stats.title}」を獲得！${result}\n#オークサバイバー\n${url}`;
+  return `【ORC SURVIVOR】${stats.stage}で討伐した勇者${stats.kills.toLocaleString()}人！称号「${stats.title}」を獲得！${result}\n#オークサバイバー\n${url}`;
 }
 
 export function openXShare(stats: RunStats, url: string): void {

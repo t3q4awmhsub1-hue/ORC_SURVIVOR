@@ -125,7 +125,12 @@ export class GameWorld {
   private readonly grid = new SpatialGrid(1.5);
   private readonly queryOut: number[] = [];
 
-  constructor(seed = 1) {
+  readonly stage: C.StageId;
+  private readonly stageDef: C.StageDef;
+
+  constructor(seed = 1, stage: C.StageId = 'grass') {
+    this.stage = stage;
+    this.stageDef = C.STAGES[stage];
     this.rng = mulberry32(seed);
     for (let i = 0; i < C.ENEMY_CAP; i++) {
       this.enemies.push({
@@ -221,7 +226,7 @@ export class GameWorld {
       return;
     }
     const phase = C.phaseAt(this.time);
-    this.spawnAcc += phase.rate * dt;
+    this.spawnAcc += phase.rate * this.stageDef.rateMul * dt;
     while (this.spawnAcc >= 1) {
       this.spawnAcc -= 1;
       const kind = weightedPick(this.rng, phase.weights);
@@ -271,7 +276,7 @@ export class GameWorld {
       e.kind = kind;
       e.x = pos.x;
       e.z = pos.z;
-      const scale = kind === 'hero' ? 1 : C.enemyHpScale(this.time);
+      const scale = (kind === 'hero' ? 1 : C.enemyHpScale(this.time)) * this.stageDef.hpMul;
       e.maxHp = def.hp * scale;
       e.hp = e.maxHp;
       e.kbx = 0;
@@ -408,7 +413,7 @@ export class GameWorld {
     const def = C.ENEMY_DEFS[e.kind];
     e.active = false;
     this.kills++;
-    this.score += def.score;
+    this.score += Math.round(def.score * this.stageDef.scoreMul);
     this.emit({ type: 'kill', x: e.x, z: e.z, kind: e.kind });
     if (def.xp > 0) this.dropGem(e.x, e.z, def.xp);
     if (this.rng() < this.meatDropChance) {
@@ -839,9 +844,10 @@ export class GameWorld {
   }
 
   private hurtPlayer(dmg: number): void {
-    this.hp -= dmg * this.damageTakenMul;
+    const amount = dmg * this.stageDef.dmgMul * this.damageTakenMul;
+    this.hp -= amount;
     this.hurtCd = this.hurtCooldown;
-    this.emit({ type: 'hurt', value: Math.round(dmg * this.damageTakenMul) });
+    this.emit({ type: 'hurt', value: Math.round(amount) });
   }
 
   private updateBoss(e: Enemy, dt: number): void {

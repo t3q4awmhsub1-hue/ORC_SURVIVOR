@@ -4,7 +4,7 @@ import {
   buildOrcRig, buildPaladin, buildTrainee, type OrcRig,
 } from '../assets/characters';
 import { buildChest, buildMeat, buildPig, buildRock, buildTree } from '../assets/props';
-import { ARENA_RADIUS, CHEST_CAP, ENEMY_CAP, GEM_CAP, type ChestTier } from '../game/config';
+import { ARENA_RADIUS, CHEST_CAP, ENEMY_CAP, GEM_CAP, STAGES, type ChestTier, type StageId } from '../game/config';
 import { mulberry32, range } from '../game/rng';
 import type { GameEvent, GameWorld } from '../game/world';
 import { makeInstanced } from './bake';
@@ -45,6 +45,10 @@ export class GameRenderer {
   private readonly popupCtx: CanvasRenderingContext2D;
 
   private readonly sun: THREE.DirectionalLight;
+  private hemi!: THREE.HemisphereLight;
+  private groundMat!: THREE.MeshLambertMaterial;
+  private treeMesh!: THREE.InstancedMesh;
+  private rockMesh!: THREE.InstancedMesh;
   private readonly playerRig: OrcRig;
   private playerClub: THREE.Object3D | null = null;
   private readonly minionRigs: OrcRig[] = [];
@@ -101,7 +105,8 @@ export class GameRenderer {
     this.popupCtx = this.popupCanvas.getContext('2d')!;
 
     // ライト
-    this.scene.add(new THREE.HemisphereLight(0xbfd9ff, 0x6a8a4f, 0.9));
+    this.hemi = new THREE.HemisphereLight(0xbfd9ff, 0x6a8a4f, 0.9);
+    this.scene.add(this.hemi);
     this.sun = new THREE.DirectionalLight(0xfff2d8, 1.6);
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(1024, 1024);
@@ -111,9 +116,10 @@ export class GameRenderer {
     this.scene.add(this.sun, this.sun.target);
 
     // 地面とアリーナ境界
+    this.groundMat = new THREE.MeshLambertMaterial({ color: 0x6f9c54 });
     const ground = new THREE.Mesh(
       new THREE.CircleGeometry(ARENA_RADIUS + 25, 64),
-      new THREE.MeshLambertMaterial({ color: 0x6f9c54 }),
+      this.groundMat,
     );
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
@@ -282,10 +288,25 @@ export class GameRenderer {
     return g;
   }
 
+  /** ステージの配色テーマを適用する */
+  setStage(id: StageId): void {
+    const s = STAGES[id];
+    (this.scene.background as THREE.Color).setHex(s.sky);
+    this.scene.fog!.color.setHex(s.sky);
+    this.groundMat.color.setHex(s.ground);
+    this.sun.color.setHex(s.sun);
+    this.hemi.color.setHex(s.hemiSky);
+    this.hemi.groundColor.setHex(s.hemiGround);
+    (this.treeMesh.material as THREE.MeshLambertMaterial).color.setHex(s.treeTint);
+    (this.rockMesh.material as THREE.MeshLambertMaterial).color.setHex(s.rockTint);
+  }
+
   private scatterDecorations(): void {
     const rng = mulberry32(7777);
     const treeMesh = makeInstanced(buildTree(), 40);
     const rockMesh = makeInstanced(buildRock(), 26);
+    this.treeMesh = treeMesh;
+    this.rockMesh = rockMesh;
     treeMesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
     rockMesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
     let t = 0;

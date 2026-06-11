@@ -7,6 +7,61 @@ export type PassiveKind = 'muscle' | 'skin' | 'trotters' | 'glutton' | 'bulk' | 
 export type ProjectileKind = 'bone' | 'arrow' | 'bolt';
 
 export const GAME_DURATION = 300;     // 5分（秒）
+
+// ---------------------------------------------------------------------------
+// ステージ（難易度別）
+// ---------------------------------------------------------------------------
+export type StageId = 'grass' | 'snow' | 'hell';
+
+export interface StageDef {
+  name: string;
+  difficulty: string;
+  icon: string;
+  desc: string;
+  /** 出現レート倍率 */
+  rateMul: number;
+  /** 敵HP倍率 */
+  hpMul: number;
+  /** 敵ダメージ倍率 */
+  dmgMul: number;
+  /** スコア倍率 */
+  scoreMul: number;
+  // 見た目（レンダラが参照）
+  ground: number;
+  sky: number;
+  sun: number;
+  hemiSky: number;
+  hemiGround: number;
+  treeTint: number;
+  rockTint: number;
+}
+
+export const STAGES: Record<StageId, StageDef> = {
+  grass: {
+    name: 'オークの森', difficulty: 'ふつう', icon: '🌳',
+    desc: '住み慣れた草原。基準の難易度',
+    rateMul: 1, hpMul: 1, dmgMul: 1, scoreMul: 1,
+    ground: 0x6f9c54, sky: 0x9ed1e8, sun: 0xfff2d8,
+    hemiSky: 0xbfd9ff, hemiGround: 0x6a8a4f,
+    treeTint: 0xffffff, rockTint: 0xffffff,
+  },
+  snow: {
+    name: '雪原の国境', difficulty: 'むずかしい', icon: '⛄',
+    desc: '敵が増え、硬くなる。スコア1.5倍',
+    rateMul: 1.3, hpMul: 1.2, dmgMul: 1.1, scoreMul: 1.5,
+    ground: 0xd8e4ea, sky: 0xc2d4e2, sun: 0xeef4ff,
+    hemiSky: 0xdde8f2, hemiGround: 0x9fb4c0,
+    treeTint: 0xa8c8d8, rockTint: 0xc8d8e2,
+  },
+  hell: {
+    name: '勇者の本国', difficulty: 'じごく', icon: '🔥',
+    desc: '敵の本拠地。生半可では死ぬ。スコア2倍',
+    rateMul: 1.6, hpMul: 1.45, dmgMul: 1.25, scoreMul: 2,
+    ground: 0x55303a, sky: 0x301622, sun: 0xff8a55,
+    hemiSky: 0x6a3a50, hemiGround: 0x3a2028,
+    treeTint: 0xb06a6a, rockTint: 0x9a6a72,
+  },
+};
 export const ARENA_RADIUS = 55;       // 移動可能範囲
 export const ENEMY_CAP = 300;         // 同時存在上限
 export const GEM_CAP = 400;

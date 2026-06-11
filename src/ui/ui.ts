@@ -1,4 +1,4 @@
-import { EVOLUTIONS, GAME_DURATION, RELICS, expForLevel } from '../game/config';
+import { EVOLUTIONS, GAME_DURATION, RELICS, STAGES, expForLevel } from '../game/config';
 import type { GameWorld } from '../game/world';
 import { choiceInfo, type UpgradeChoice } from '../game/upgrades';
 import { PROLOGUE_PAGES, epilogueText } from './prologue';
@@ -214,6 +214,7 @@ export class UI {
     el('result-headline').className = stats.won ? 'won' : 'lost';
     el('result-story').textContent = epilogueText(stats.won, stats.timeSec);
     el('result-stats').innerHTML = `
+      <div class="stat"><span>ステージ</span><strong>${stats.stage}</strong></div>
       <div class="stat"><span>称号</span><strong>「${stats.title}」</strong></div>
       <div class="stat"><span>討伐した勇者</span><strong><em id="kills-counter">0</em>人</strong></div>
       <div class="stat"><span>生存時間</span><strong>${formatTime(stats.timeSec)}</strong></div>
@@ -265,6 +266,7 @@ export function collectStats(world: GameWorld, title: string): RunStats {
     icons.push(world.evolved.has(id) ? EVOLUTIONS[id].icon : choiceInfo({ kind: 'weapon', id, nextLevel: 1 }).icon);
   }
   for (const [id] of world.passives) icons.push(choiceInfo({ kind: 'passive', id, nextLevel: 1 }).icon);
+  const stageDef = STAGES[world.stage];
   return {
     won: world.state === 'won',
     kills: world.kills,
@@ -272,6 +274,7 @@ export function collectStats(world: GameWorld, title: string): RunStats {
     timeSec: world.time,
     level: world.level,
     title,
+    stage: `${stageDef.icon} ${stageDef.name}`,
     buildIcons: icons,
   };
 }

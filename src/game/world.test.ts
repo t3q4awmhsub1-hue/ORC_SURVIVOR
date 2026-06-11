@@ -356,6 +356,47 @@ describe('宝箱', () => {
   });
 });
 
+describe('ステージ難易度', () => {
+  it('じごくステージは敵HP・被ダメ・スコアが増える', () => {
+    const grass = new GameWorld(1, 'grass');
+    const hell = new GameWorld(1, 'hell');
+    const eg = grass.spawnEnemy('knight', { x: 0, z: 40 })!;
+    const eh = hell.spawnEnemy('knight', { x: 0, z: 40 })!;
+    expect(eh.maxHp).toBeCloseTo(eg.maxHp * 1.45, 1);
+    // 被ダメ倍率
+    for (const w of [grass, hell]) {
+      w.spawnEnemy('trainee', { x: 0, z: -0.5 });
+      step(w, 0.5, IDLE);
+    }
+    const grassLost = grass.maxHp - grass.hp;
+    const hellLost = hell.maxHp - hell.hp;
+    expect(hellLost).toBeGreaterThan(grassLost * 1.1);
+    // スコア倍率（trainee=1pt → hell 2pt）
+    const w2 = new GameWorld(1, 'hell');
+    w2.spawnEnemy('trainee', { x: 0, z: 1.2 });
+    step(w2, 1.5, IDLE);
+    expect(w2.kills).toBeGreaterThanOrEqual(1);
+    expect(w2.score).toBeGreaterThanOrEqual(w2.kills * 2);
+  });
+
+  it('じごくステージは出現レートが1.6倍', () => {
+    const count = (stage: 'grass' | 'hell') => {
+      const w = new GameWorld(1, stage);
+      Object.defineProperty(w, 'hurtPlayer', { value: () => {} });
+      stepAuto(w, 20, IDLE);
+      return w.kills + w.activeEnemyCount();
+    };
+    const g = count('grass');
+    const h = count('hell');
+    expect(h).toBeGreaterThan(g * 1.3);
+  });
+
+  it('デフォルトは草原（既存テストとの互換）', () => {
+    const w = new GameWorld(1);
+    expect(w.stage).toBe('grass');
+  });
+});
+
 describe('決定性', () => {
   it('同じシードと入力なら同じ結果になる', () => {
     const results: Array<[number, number, number, number, number]> = [];

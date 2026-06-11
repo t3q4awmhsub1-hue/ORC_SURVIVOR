@@ -152,6 +152,15 @@
       to { text-shadow: 0 4px 0 #2c4a20, 0 8px 24px rgba(0,0,0,.7), 0 0 42px rgba(125, 217, 87, .65); }
     }
     #start { animation: startPulse 2.2s ease-in-out infinite; }
+    #stage-select { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .stage {
+      display: flex; flex-direction: column; gap: 2px; align-items: center;
+      background: rgba(15, 22, 12, 0.7); border: 2px solid #3a4a33;
+      font-size: 15px; padding: 10px 18px; color: #c9d6bb;
+    }
+    .stage small { font-size: 11px; color: #8a9a7a; font-weight: 400; }
+    .stage.on { border-color: var(--green); color: #fff; background: rgba(45, 70, 35, 0.8); }
+    .stage.on small { color: #aed39a; }
     @keyframes startPulse { 50% { transform: scale(1.05); filter: brightness(1.12); } }
     #volume-label { display: flex; align-items: center; gap: 10px; font-weight: 700; color: #c9d6bb; }
     #volume { width: 200px; accent-color: var(--green); }
@@ -303,6 +312,11 @@
     <h1 class="logo">ORC<br>SURVIVOR</h1>
     <p class="tagline">〜5分間、勇者を返り討て〜</p>
     <p id="highscore"></p>
+    <div id="stage-select">
+      <button class="stage on" data-stage="grass">🌳 オークの森<small>ふつう</small></button>
+      <button class="stage" data-stage="snow">⛄ 雪原の国境<small>むずかしい ・ スコア×1.5</small></button>
+      <button class="stage" data-stage="hell">🔥 勇者の本国<small>じごく ・ スコア×2</small></button>
+    </div>
     <button id="start">ゲーム開始 (SPACE)</button>
     <button id="replay-prologue" class="ghost">📜 物語をみる</button>
     <p class="controls">PC: WASD / 矢印キーで移動 ・ スマホ: 画面をドラッグで移動 ・ 攻撃は自動</p>
