@@ -77,6 +77,8 @@ export class Sound {
 
   // --- 効果音 ----------------------------------------------------------------
   swing(): void { this.noise(0.08, 0.10, 1200); }
+  /** プロローグのページ送り（柔らかい鈴の音） */
+  page(): void { this.tone(660, 0.5, 'sine', 0.05, 658); this.tone(990, 0.6, 'sine', 0.025, 988, 0.04); }
   hit(): void { this.noise(0.05, 0.12, 2500); this.tone(180, 0.06, 'square', 0.05, 120); }
   kill(): void { this.tone(330, 0.1, 'square', 0.08, 110); }
   gem(): void { this.tone(880, 0.07, 'sine', 0.05, 1320); }

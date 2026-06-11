@@ -7,7 +7,8 @@ import { UI, collectStats } from './ui/ui';
 const GAME_URL = 'https://t3q4awmhsub1-hue.github.io/ORC_SURVIVOR/';
 const HS_KEY = 'orc-survivor-highscore';
 
-type AppState = 'title' | 'playing' | 'paused' | 'result';
+type AppState = 'title' | 'prologue' | 'playing' | 'paused' | 'result';
+const PROLOGUE_SEEN_KEY = 'orc-survivor-prologue-seen';
 
 const ui = new UI();
 const sound = new Sound();
@@ -61,7 +62,11 @@ addEventListener('keydown', (ev) => {
   }
   switch (state) {
     case 'title':
-      if (ev.code === 'Space' || ev.code === 'Enter') startRun();
+      if (ev.code === 'Space' || ev.code === 'Enter') requestStart();
+      break;
+    case 'prologue':
+      if (ev.code === 'Space' || ev.code === 'Enter') ui.prologueNext();
+      else if (ev.code === 'Escape') ui.prologueSkip();
       break;
     case 'playing':
       if (ui.levelUpVisible) {
@@ -97,7 +102,11 @@ function inputVector(): { dx: number; dz: number } {
 
 document.getElementById('start')!.addEventListener('click', () => {
   sound.ensure();
-  startRun();
+  requestStart();
+});
+document.getElementById('replay-prologue')!.addEventListener('click', () => {
+  sound.ensure();
+  playPrologue();
 });
 document.getElementById('retry')!.addEventListener('click', () => startRun());
 document.getElementById('resume')!.addEventListener('click', () => {
@@ -111,6 +120,23 @@ document.getElementById('quit')!.addEventListener('click', () => {
 });
 
 // --- 状態遷移 ------------------------------------------------------------------
+
+/** タイトルからの開始: 初回はプロローグを挟む */
+function requestStart(): void {
+  if (localStorage.getItem(PROLOGUE_SEEN_KEY)) {
+    startRun();
+  } else {
+    playPrologue();
+  }
+}
+
+function playPrologue(): void {
+  state = 'prologue';
+  localStorage.setItem(PROLOGUE_SEEN_KEY, '1');
+  ui.onPrologueAdvance = () => sound.page();
+  ui.startPrologue(() => startRun());
+}
+
 function startRun(): void {
   const params = new URLSearchParams(location.search);
   const seed = params.has('seed')

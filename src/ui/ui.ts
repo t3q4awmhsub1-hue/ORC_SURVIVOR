@@ -1,6 +1,7 @@
 import { GAME_DURATION, expForLevel } from '../game/config';
 import type { GameWorld } from '../game/world';
 import { choiceInfo, type UpgradeChoice } from '../game/upgrades';
+import { PROLOGUE_PAGES, epilogueText } from './prologue';
 import { copyCard, downloadCard, drawShareCard, formatTime, openXShare, type RunStats } from './share';
 
 function el<T extends HTMLElement>(id: string): T {
@@ -26,15 +27,68 @@ export class UI {
   private readonly bossbar = el('bossbar');
   private readonly bossfill = el('bossfill');
   private readonly skillIcons = el('skill-icons');
+  private readonly prologue = el('prologue');
+  private readonly prologueText = el('prologue-text');
+  private readonly prologueDots = el('prologue-dots');
   private warningTimer: number | null = null;
+  private prologuePage = -1;
+  private onPrologueDone: (() => void) | null = null;
 
   onPick: ((index: number) => void) | null = null;
+  /** プロローグのページ送り時に呼ばれる（効果音用） */
+  onPrologueAdvance: (() => void) | null = null;
 
   constructor() {
     this.choicesBox.addEventListener('click', (ev) => {
       const target = (ev.target as HTMLElement).closest('[data-index]');
       if (target) this.onPick?.(Number((target as HTMLElement).dataset.index));
     });
+    this.prologue.addEventListener('click', () => this.prologueNext());
+  }
+
+  // --- プロローグ ------------------------------------------------------------
+  startPrologue(onDone: () => void): void {
+    this.hideAll();
+    this.onPrologueDone = onDone;
+    this.prologuePage = -1;
+    this.prologue.classList.remove('hidden');
+    this.prologueNext();
+  }
+
+  get prologueActive(): boolean {
+    return !this.prologue.classList.contains('hidden');
+  }
+
+  prologueNext(): void {
+    this.prologuePage++;
+    if (this.prologuePage >= PROLOGUE_PAGES.length) {
+      this.endPrologue();
+      return;
+    }
+    this.onPrologueAdvance?.();
+    const page = PROLOGUE_PAGES[this.prologuePage];
+    this.prologueText.innerHTML = '';
+    page.lines.forEach((line, i) => {
+      const p = document.createElement('p');
+      p.className = page.emphasis?.includes(i) ? 'story-line em' : 'story-line';
+      p.style.animationDelay = `${i * 0.55}s`;
+      p.textContent = line;
+      this.prologueText.appendChild(p);
+    });
+    this.prologueDots.innerHTML = PROLOGUE_PAGES
+      .map((_, i) => `<span class="dot${i <= this.prologuePage ? ' on' : ''}"></span>`)
+      .join('');
+  }
+
+  prologueSkip(): void {
+    if (this.prologueActive) this.endPrologue();
+  }
+
+  private endPrologue(): void {
+    this.prologue.classList.add('hidden');
+    const done = this.onPrologueDone;
+    this.onPrologueDone = null;
+    done?.();
   }
 
   showTitle(highScore: number, bestTitle: string): void {
@@ -52,7 +106,9 @@ export class UI {
   }
 
   hideAll(): void {
-    for (const s of [this.title, this.levelup, this.pause, this.result]) s.classList.add('hidden');
+    for (const s of [this.title, this.levelup, this.pause, this.result, this.prologue]) {
+      s.classList.add('hidden');
+    }
     this.hud.classList.add('hidden');
   }
 
@@ -113,6 +169,7 @@ export class UI {
       ? '🏆 完全勝利！真の勇者を返り討ちにした！'
       : '💀 オークは力尽きた…';
     el('result-headline').className = stats.won ? 'won' : 'lost';
+    el('result-story').textContent = epilogueText(stats.won, stats.timeSec);
     el('result-stats').innerHTML = `
       <div class="stat"><span>称号</span><strong>「${stats.title}」</strong></div>
       <div class="stat"><span>討伐した勇者</span><strong>${stats.kills.toLocaleString()}人</strong></div>

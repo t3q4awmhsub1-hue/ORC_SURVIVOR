@@ -86,6 +86,7 @@
       padding: 12px 30px; cursor: pointer; transition: transform .08s, filter .15s;
     }
     button:hover { filter: brightness(1.15); transform: translateY(-1px); }
+    button.ghost { background: transparent; border: 1px solid #3a4a33; color: #9eb18c; font-size: 14px; padding: 8px 20px; }
 
     /* タイトル */
     #title-screen { background: radial-gradient(ellipse at center, #25391c 0%, #0d1409 80%); }
@@ -99,6 +100,28 @@
     #highscore { color: #ffd34d; font-weight: 700; min-height: 1.2em; margin: 0; }
     .controls { color: #9eb18c; font-size: 14px; margin-top: 18px; }
     .credit { color: #5f7050; font-size: 11px; margin-top: 2px; }
+
+    /* プロローグ */
+    #prologue {
+      background: radial-gradient(ellipse at 50% 40%, #131d0e 0%, #050803 90%);
+      cursor: pointer; justify-content: center; gap: 0;
+    }
+    #prologue-text {
+      max-width: 720px; padding: 0 24px; display: flex; flex-direction: column; gap: 18px;
+    }
+    .story-line {
+      margin: 0; font-size: clamp(16px, 2.6vw, 22px); line-height: 1.9; color: #cfd9c2;
+      opacity: 0; animation: storyIn 1.1s ease forwards;
+    }
+    .story-line.em { color: #ffe97a; font-weight: 900; font-size: clamp(18px, 3vw, 26px); }
+    @keyframes storyIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    #prologue-hint {
+      position: absolute; bottom: 26px; right: 30px; font-size: 13px; color: #7a8a6a;
+      animation: pulse 2.4s infinite;
+    }
+    #prologue-dots { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #3a4a33; }
+    .dot.on { background: #7ed957; }
 
     /* レベルアップ */
     #levelup h2 {
@@ -123,6 +146,10 @@
     /* リザルト */
     #result { gap: 10px; }
     #result-headline { font-size: clamp(22px, 4.5vw, 38px); margin: 0; font-weight: 900; }
+    #result-story {
+      max-width: 640px; margin: 0; padding: 0 20px; font-size: 15px; line-height: 1.8;
+      color: #cfd9c2;
+    }
     #result-headline.won { color: #ffd34d; }
     #result-headline.lost { color: #ff7a5c; }
     #result-stats { display: flex; gap: 22px; flex-wrap: wrap; justify-content: center; }
@@ -159,8 +186,15 @@
     <p class="tagline">〜10分間、勇者を返り討て〜</p>
     <p id="highscore"></p>
     <button id="start">ゲーム開始 (SPACE)</button>
+    <button id="replay-prologue" class="ghost">📜 物語をみる</button>
     <p class="controls">移動: WASD / 矢印キー ・ 攻撃は自動 ・ 1-3: スキル選択 ・ ESC: ポーズ ・ M: ミュート</p>
     <p class="credit">3Dモデル・効果音・BGMを含む全アセットはコード生成（外部素材不使用）</p>
+  </div>
+
+  <div id="prologue" class="screen hidden">
+    <div id="prologue-text"></div>
+    <div id="prologue-dots"></div>
+    <div id="prologue-hint">クリック / SPACE: 次へ　　ESC: スキップ</div>
   </div>
 
   <div id="levelup" class="screen hidden">
@@ -176,6 +210,7 @@
 
   <div id="result" class="screen hidden">
     <h2 id="result-headline"></h2>
+    <p id="result-story"></p>
     <div id="result-stats"></div>
     <canvas id="card"></canvas>
     <div class="result-buttons">

@@ -46,3 +46,4 @@
 - 2026-06-11: **v1.0公開** https://t3q4awmhsub1-hue.github.io/ORC_SURVIVOR/ （本番でゲーム動作・60fps確認済み）
 - 2026-06-11: workflowスコープ付与後、GitHub Actionsパイプライン有効化（Pagesのソースも Actions に切替）。**M0〜M4全項目完了** 🎉
 - TODO(将来): GitHub Actions の Node.js 20 非推奨警告対応（2026-09-16までにアクションのバージョン更新を確認）
+- 2026-06-11: v1.1.0 プロローグ実装（10分生存ルールへの物語的意味付け＋リザルトのエピローグ分岐）
